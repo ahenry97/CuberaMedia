@@ -99,7 +99,7 @@ Recommended settings:
 
 - Production branch: `main`.
 - Development branch: `develop`.
-- Project root: `website` unless the future framework requires a different root.
+- Project root: repository root.
 - Production deploy command: add it to `.github/workflows/production-migration.yml`.
 
 Do not enable automatic production deploys that bypass GitHub environment approval. The production workflow should be the path that deploys live changes.
