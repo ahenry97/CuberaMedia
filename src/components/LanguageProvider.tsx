@@ -12,20 +12,30 @@ interface LanguageContextValue {
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
+const languageCookieMaxAge = 60 * 60 * 24 * 365;
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("en");
+export function LanguageProvider({ children, initialLanguage = "en" }: { children: React.ReactNode; initialLanguage?: Language }) {
+  const [language, setLanguageState] = useState<Language>(initialLanguage);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("cubera-language");
     if (stored === "en" || stored === "es") {
       setLanguageState(stored);
+      document.documentElement.lang = stored;
+      writeLanguageCookie(stored);
+      return;
     }
-  }, []);
+
+    window.localStorage.setItem("cubera-language", initialLanguage);
+    document.documentElement.lang = initialLanguage;
+    writeLanguageCookie(initialLanguage);
+  }, [initialLanguage]);
 
   const setLanguage = (nextLanguage: Language) => {
     setLanguageState(nextLanguage);
     window.localStorage.setItem("cubera-language", nextLanguage);
+    document.documentElement.lang = nextLanguage;
+    writeLanguageCookie(nextLanguage);
   };
 
   const value = useMemo<LanguageContextValue>(
@@ -49,6 +59,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}
+
+function writeLanguageCookie(language: Language) {
+  document.cookie = `cubera-language=${language}; path=/; max-age=${languageCookieMaxAge}; SameSite=Lax`;
 }
 
 export function useLanguage() {

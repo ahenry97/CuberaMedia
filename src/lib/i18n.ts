@@ -40,8 +40,14 @@ export const dictionary = {
         "Launch a professional website, set up your digital profiles, and manage your onboarding in one clear workspace.",
       primaryCta: "Get Started",
       secondaryCta: "View Services",
-      processTitle: "A simple path from idea to launch",
+      processTitle: "Project workflow",
       process: ["Register", "Complete intake form", "Review project plan", "Launch and grow"],
+      processDescriptions: [
+        "Create an account and share basic business details.",
+        "Answer the intake questions so we can scope the work.",
+        "Review the plan, timing, and next actions together.",
+        "Launch improvements and keep your digital presence moving."
+      ],
       servicesIntro: "Focused digital services for small teams that need practical execution.",
       aboutTitle: "Built for local businesses that need calm, useful digital support.",
       aboutText:
@@ -186,8 +192,14 @@ export const dictionary = {
         "Lance un sitio web profesional, configure sus perfiles digitales y maneje su proceso de onboarding en un espacio claro.",
       primaryCta: "Comenzar",
       secondaryCta: "Ver servicios",
-      processTitle: "Un camino simple desde la idea hasta el lanzamiento",
+      processTitle: "Flujo del proyecto",
       process: ["Registrarse", "Completar formulario", "Revisar plan del proyecto", "Lanzar y crecer"],
+      processDescriptions: [
+        "Cree una cuenta y comparta los datos basicos del negocio.",
+        "Responda las preguntas para definir el alcance del trabajo.",
+        "Revise el plan, el tiempo estimado y los proximos pasos.",
+        "Lance las mejoras y mantenga su presencia digital avanzando."
+      ],
       servicesIntro: "Servicios digitales enfocados para equipos pequenos que necesitan ejecucion practica.",
       aboutTitle: "Creado para negocios locales que necesitan apoyo digital claro y util.",
       aboutText:
