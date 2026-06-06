@@ -1,0 +1,74 @@
+name: Production migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_name:
+        description: Short name for the production migration.
+        required: true
+        type: string
+      approved_change:
+        description: Confirm that the production change has been approved.
+        required: true
+        type: boolean
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/production-migration.yml"
+      - "migrations/production/**"
+      - "scripts/send_production_email.py"
+      - "website/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  production-migration:
+    name: Await approval and run production migration
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - name: Require manual dispatch acknowledgement
+        if: github.event_name == 'workflow_dispatch' && inputs.approved_change != true
+        run: |
+          echo "The workflow was started without explicit production approval acknowledgement."
+          exit 1
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Confirm production approval gate
+        run: |
+          echo "This job runs only after the GitHub production environment approval gate is satisfied."
+          echo "Commit: $GITHUB_SHA"
+          echo "Ref: $GITHUB_REF_NAME"
+
+      - name: Run production migration placeholder
+        run: |
+          echo "Replace this step with the production host deployment or migration command."
+          test -d website
+
+      - name: Send production migration email
+        if: success()
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          SMTP_USE_TLS: ${{ vars.SMTP_USE_TLS || 'true' }}
+          NOTIFY_TO: aaronhenry0512@gmail.com
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+          MIGRATION_NAME: ${{ github.event.inputs.migration_name || github.event.head_commit.message || 'Production migration' }}
+          GITHUB_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: python3 scripts/send_production_email.py
