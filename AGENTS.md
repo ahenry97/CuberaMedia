@@ -55,3 +55,16 @@ Seed users:
 - Prefer clear forms, tables, status badges, and dashboards over decorative effects.
 - Keep the data model aligned with the Supabase/PostgreSQL schema.
 - Run `npm run lint`, `npm run test`, and `npm run build` before committing.
+
+## Developer Notes Workflow
+
+When the user asks to review developer notes:
+
+1. Inspect every pending folder in `developer-notes/pending/`.
+2. Read `note.md` and inspect `screenshot.png` before editing files.
+3. Resolve each clear issue with focused code changes.
+4. Run focused verification.
+5. Append the resolution to `developer-notes/completed/completed-developer-notes.md`.
+6. Remove the resolved pending folder.
+
+Do not start code changes for a captured local testing issue until the matching pending note has been reviewed.

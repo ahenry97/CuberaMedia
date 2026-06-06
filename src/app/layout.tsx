@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DevelopmentIssueBar } from "@/components/dev/DevelopmentIssueBar";
 import { Footer } from "@/components/site/Footer";
 import { Header } from "@/components/site/Header";
 import { LanguageProvider } from "@/components/LanguageProvider";
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           {children}
           <Footer />
+          {process.env.NODE_ENV === "development" ? <DevelopmentIssueBar /> : null}
         </LanguageProvider>
       </body>
     </html>
