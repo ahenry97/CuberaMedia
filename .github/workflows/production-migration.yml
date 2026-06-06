@@ -17,8 +17,10 @@ on:
     paths:
       - ".github/workflows/production-migration.yml"
       - "migrations/production/**"
+      - "package.json"
       - "scripts/send_production_email.py"
-      - "website/**"
+      - "src/**"
+      - "supabase/**"
 
 permissions:
   contents: read
@@ -54,7 +56,7 @@ jobs:
       - name: Run production migration placeholder
         run: |
           echo "Replace this step with the production host deployment or migration command."
-          test -d website
+          test -d src/app
 
       - name: Send production migration email
         if: success()

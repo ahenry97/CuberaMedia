@@ -24,13 +24,16 @@ jobs:
 
       - name: Validate expected project directories
         run: |
-          test -d website
+          test -d src/app
           test -d environments/local
           test -d migrations
 
-      - name: Upload website snapshot
+      - name: Upload app source snapshot
         uses: actions/upload-artifact@v4
         with:
-          name: website-snapshot-${{ github.sha }}
-          path: website
+          name: app-source-snapshot-${{ github.sha }}
+          path: |
+            src
+            package.json
+            supabase
           retention-days: 30
