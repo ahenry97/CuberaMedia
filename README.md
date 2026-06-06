@@ -45,6 +45,8 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+When running locally with `npm run dev`, a floating `Dev Notes` bar appears in the app. Use it to capture a page screenshot and issue note during testing. Notes are written to `developer-notes/pending/` and should be reviewed before code changes.
+
 Seed accounts:
 
 - Customer: `customer@example.com` / `Password123!`
@@ -125,3 +127,16 @@ Follow [docs/production-environment.md](docs/production-environment.md) before e
 Production deploys must use the GitHub `production` environment approval gate. Successful production migrations send an email to `aaronhenry0512@gmail.com` after SMTP secrets are configured.
 
 Migration and rollback steps are documented in [docs/migrations-and-reverts.md](docs/migrations-and-reverts.md).
+
+## Developer Notes Workflow
+
+Local testing issues can be captured from the floating `Dev Notes` bar in development mode. Each capture creates:
+
+```text
+developer-notes/pending/<timestamp-page-slug>/note.md
+developer-notes/pending/<timestamp-page-slug>/screenshot.png
+```
+
+Before fixing local testing feedback, review pending notes. After resolving a note, document the result in `developer-notes/completed/completed-developer-notes.md` and remove the resolved pending folder.
+
+Full instructions are in [docs/developer-notes.md](docs/developer-notes.md).

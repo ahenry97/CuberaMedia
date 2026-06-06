@@ -20,3 +20,14 @@ test("production workflow uses environment approval gate", () => {
   assert.match(source, /environment:\s*\n\s*name:\s*production/);
   assert.match(source, /aaronhenry0512@gmail.com/);
 });
+
+test("local developer notes capture workflow is present", () => {
+  const layout = fs.readFileSync("src/app/layout.tsx", "utf8");
+  const route = fs.readFileSync("src/app/api/developer-notes/route.ts", "utf8");
+  const docs = fs.readFileSync("docs/developer-notes.md", "utf8");
+
+  assert.match(layout, /DevelopmentIssueBar/);
+  assert.match(route, /developer-notes/);
+  assert.match(route, /NODE_ENV !== "development"/);
+  assert.match(docs, /review developer notes/i);
+});
