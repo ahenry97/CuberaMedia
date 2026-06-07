@@ -161,3 +161,27 @@ Root cause: The manager page only handled intake question CRUD and had no workfl
 Files changed: `src/components/developer/DeveloperDashboard.tsx`, `src/app/developer/intake-manager/page.tsx`, `src/app/api/developer/plans/route.ts`, `src/lib/i18n.ts`
 Verification: Local route check confirmed Developer Manager, workflow configuration, conditional rules, search/filter controls, and plan catalog render.
 Commit: Resolution commit containing this entry.
+
+Date: 2026-06-07
+Pending note ID: 20260607160743-developer-intake-manager
+Issue: Developer Manager needed create, edit, and delete controls for operation workflows and subscription plan catalogs.
+Root cause: Workflow configuration was rendered as a static badge list, and plan catalog cards only supported add/edit.
+Files changed: `src/components/developer/DeveloperDashboard.tsx`, `src/app/api/developer/workflows/route.ts`, `src/app/api/developer/plans/route.ts`, `src/lib/types.ts`, `src/lib/db/store.ts`, `src/lib/db/seed.ts`
+Verification: `npm run test`, `npm run lint`, `npm run build`, and `npm run build:github-pages`.
+Commit: Resolution commit containing this entry.
+
+Date: 2026-06-07
+Pending note ID: 20260607160951-developer-customers
+Issue: Customer View details and project count links did not open a customer-specific account/project view.
+Root cause: The Customers page only updated an in-page selected customer panel and linked project counts to the generic projects page.
+Files changed: `src/components/developer/DeveloperDashboard.tsx`, `src/app/developer/customers/[id]/page.tsx`
+Verification: `npm run build` confirmed `/developer/customers/profile-customer-1` is generated; static export also includes the route.
+Commit: Resolution commit containing this entry.
+
+Date: 2026-06-07
+Pending note ID: 20260607161056-developer-customers
+Issue: Selecting a customer name should open a customer account page where information can be viewed and managed.
+Root cause: Customer names were buttons that only changed local component state.
+Files changed: `src/components/developer/DeveloperDashboard.tsx`, `src/app/developer/customers/[id]/page.tsx`
+Verification: `npm run build` and `npm run build:github-pages` generated the customer account route.
+Commit: Resolution commit containing this entry.

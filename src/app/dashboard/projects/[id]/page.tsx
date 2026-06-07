@@ -3,7 +3,9 @@ import { ProjectDetailPanel } from "@/components/customer/CustomerDashboard";
 import { requireRole } from "@/lib/auth/session";
 import { readData } from "@/lib/db/store";
 
-export const dynamic = "force-dynamic";
+export function generateStaticParams() {
+  return [{ id: "project-1" }, { id: "project-2" }];
+}
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const profile = await requireRole("customer");

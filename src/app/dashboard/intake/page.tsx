@@ -2,8 +2,6 @@ import { IntakeForm } from "@/components/customer/CustomerDashboard";
 import { requireRole } from "@/lib/auth/session";
 import { readData } from "@/lib/db/store";
 
-export const dynamic = "force-dynamic";
-
 export default async function Page() {
   await requireRole("customer");
   const data = await readData();

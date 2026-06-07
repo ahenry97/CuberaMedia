@@ -93,6 +93,19 @@ export interface Plan {
   notification_note_es?: string;
 }
 
+export interface OperationWorkflow {
+  id: string;
+  name: string;
+  description: string;
+  source_type: SourceType;
+  statuses: WorkItemStatus[];
+  notification_rules: string;
+  document_rules: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Project {
   id: string;
   customer_id: string;
@@ -200,6 +213,7 @@ export interface AppData {
   profiles: Profile[];
   subscriptions: Subscription[];
   plans: Plan[];
+  operationWorkflows: OperationWorkflow[];
   projects: Project[];
   intakeQuestions: IntakeQuestion[];
   intakeSubmissions: IntakeSubmission[];

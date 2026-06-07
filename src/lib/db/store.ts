@@ -11,6 +11,7 @@ import type {
   IntakeQuestion,
   IntakeSubmission,
   Language,
+  OperationWorkflow,
   Plan,
   Profile,
   ProjectStatus,
@@ -24,6 +25,20 @@ import type {
 } from "@/lib/types";
 
 const dataFilePath = () => path.resolve(process.cwd(), process.env.LOCAL_DATA_FILE ?? ".local-data/app-data.json");
+
+const workStatusOptions: WorkItemStatus[] = [
+  "new",
+  "reviewing",
+  "needs_client_info",
+  "approved",
+  "staged",
+  "in_progress",
+  "internal_review",
+  "waiting_for_client_approval",
+  "rejected",
+  "complete",
+  "archived"
+];
 
 async function ensureDataFile(): Promise<void> {
   const filePath = dataFilePath();
@@ -48,7 +63,46 @@ export async function resetDataWithSeed(): Promise<AppData> {
 export async function readData(): Promise<AppData> {
   await ensureDataFile();
   const raw = await fs.readFile(dataFilePath(), "utf8");
-  return JSON.parse(raw) as AppData;
+  const data = JSON.parse(raw) as AppData;
+  normalizeData(data);
+  return data;
+}
+
+function defaultOperationWorkflows(timestamp = new Date().toISOString()): OperationWorkflow[] {
+  return [
+    {
+      id: "workflow-default-intake",
+      name: "Default intake workflow",
+      description: "Standard workflow for new intake, support, and subscription review work items.",
+      source_type: "intake",
+      statuses: [
+        "new",
+        "reviewing",
+        "needs_client_info",
+        "approved",
+        "staged",
+        "in_progress",
+        "internal_review",
+        "waiting_for_client_approval",
+        "complete"
+      ],
+      notification_rules: "Notify customers when more information, approval, or completion is needed.",
+      document_rules: "Request documents only when a workflow stage requires client-supplied assets.",
+      active: true,
+      created_at: timestamp,
+      updated_at: timestamp
+    }
+  ];
+}
+
+function normalizeData(data: AppData): void {
+  data.operationWorkflows ??= defaultOperationWorkflows();
+  data.plans = data.plans.map((plan) => ({
+    ...plan,
+    requires_verification: plan.requires_verification ?? false,
+    notification_note_en: plan.notification_note_en ?? "",
+    notification_note_es: plan.notification_note_es ?? ""
+  }));
 }
 
 export async function writeData<T>(updater: (data: AppData) => T | Promise<T>): Promise<T> {
@@ -533,6 +587,66 @@ export async function upsertPlan(input: Partial<Plan>): Promise<Plan> {
 
     data.plans.push(plan);
     return plan;
+  });
+}
+
+export async function deletePlan(planId: string): Promise<void> {
+  await writeData((data) => {
+    data.plans = data.plans.filter((plan) => plan.id !== planId);
+  });
+}
+
+export async function upsertOperationWorkflow(input: Partial<OperationWorkflow>): Promise<OperationWorkflow> {
+  const timestamp = new Date().toISOString();
+  const cleanStatuses = (statuses: unknown): WorkItemStatus[] => {
+    const values = Array.isArray(statuses)
+      ? statuses.map(String)
+      : typeof statuses === "string"
+        ? statuses.split("\n").map((status) => status.trim())
+        : [];
+    return values.filter((status): status is WorkItemStatus => workStatusOptions.includes(status as WorkItemStatus));
+  };
+
+  return writeData((data) => {
+    if (input.id) {
+      const existing = data.operationWorkflows.find((workflow) => workflow.id === input.id);
+      if (!existing) throw new Error("Workflow not found.");
+      existing.name = input.name ?? existing.name;
+      existing.description = input.description ?? existing.description;
+      existing.source_type = input.source_type ?? existing.source_type;
+      existing.statuses = input.statuses ? cleanStatuses(input.statuses) : existing.statuses;
+      existing.notification_rules = input.notification_rules ?? existing.notification_rules;
+      existing.document_rules = input.document_rules ?? existing.document_rules;
+      existing.active = input.active ?? existing.active;
+      existing.updated_at = timestamp;
+      return existing;
+    }
+
+    if (!input.name || !input.source_type) {
+      throw new Error("Workflow name and source type are required.");
+    }
+
+    const workflow: OperationWorkflow = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      description: input.description ?? "",
+      source_type: input.source_type,
+      statuses: cleanStatuses(input.statuses).length ? cleanStatuses(input.statuses) : defaultOperationWorkflows(timestamp)[0].statuses,
+      notification_rules: input.notification_rules ?? "",
+      document_rules: input.document_rules ?? "",
+      active: input.active ?? true,
+      created_at: timestamp,
+      updated_at: timestamp
+    };
+
+    data.operationWorkflows.push(workflow);
+    return workflow;
+  });
+}
+
+export async function deleteOperationWorkflow(workflowId: string): Promise<void> {
+  await writeData((data) => {
+    data.operationWorkflows = data.operationWorkflows.filter((workflow) => workflow.id !== workflowId);
   });
 }
 

@@ -64,6 +64,30 @@ export async function createSeedData(): Promise<AppData> {
         updated_at: timestamp
       }
     ],
+    operationWorkflows: [
+      {
+        id: "workflow-default-intake",
+        name: "Default intake workflow",
+        description: "Standard workflow for new intake, support, and subscription review work items.",
+        source_type: "intake",
+        statuses: [
+          "new",
+          "reviewing",
+          "needs_client_info",
+          "approved",
+          "staged",
+          "in_progress",
+          "internal_review",
+          "waiting_for_client_approval",
+          "complete"
+        ],
+        notification_rules: "Notify customers when more information, approval, or completion is needed.",
+        document_rules: "Request documents only when a workflow stage requires client-supplied assets.",
+        active: true,
+        created_at: timestamp,
+        updated_at: timestamp
+      }
+    ],
     plans: [
       {
         id: "plan-starter",

@@ -4,7 +4,7 @@ import { Archive, ArrowDown, ArrowUp, ChevronRight, Plus, Save, Search } from "l
 import { useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, SectionHeader } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/FormFields";
 import type {
@@ -13,6 +13,7 @@ import type {
   IntakeAnswer,
   IntakeQuestion,
   IntakeSubmission,
+  OperationWorkflow,
   Profile,
   Plan,
   Project,
@@ -173,13 +174,13 @@ export function CustomersManager({
             return (
               <form key={customer.id} className="grid gap-4 rounded-md border border-line p-4" onSubmit={(event) => saveAccount(event, customer.id)}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <button type="button" className="text-left" onClick={() => setSelectedCustomerId(customer.id)}>
-                    <p className="font-bold text-ink">{customer.full_name}</p>
+                  <a href={`/developer/customers/${customer.id}`} className="text-left" onClick={() => setSelectedCustomerId(customer.id)}>
+                    <p className="font-bold text-ink hover:text-teal">{customer.full_name}</p>
                     <p className="text-sm text-slate">{customer.business_name} · {customer.email}</p>
-                  </button>
-                  <Button type="button" variant="secondary" onClick={() => setSelectedCustomerId(customer.id)}>
+                  </a>
+                  <ButtonLink href={`/developer/customers/${customer.id}`} variant="secondary">
                     {t("common.viewDetails")}
-                  </Button>
+                  </ButtonLink>
                 </div>
                 <div className="grid gap-3 md:grid-cols-4">
                   <Field label="Phone">
@@ -205,7 +206,7 @@ export function CustomersManager({
                   </Field>
                   <div className="rounded-md bg-paper p-3">
                     <p className="text-sm font-semibold text-slate">Projects</p>
-                    <a href="/developer/projects" className="mt-1 block text-2xl font-bold text-ink hover:text-teal">{activeProjectCount}</a>
+                    <a href={`/developer/customers/${customer.id}#projects`} className="mt-1 block text-2xl font-bold text-ink hover:text-teal">{activeProjectCount}</a>
                   </div>
                 </div>
                 <Field label="Developer note for account notification">
@@ -236,7 +237,7 @@ export function CustomersManager({
               <p className="text-sm font-semibold text-slate">Active projects</p>
               <div className="mt-2 grid gap-2">
                 {selectedProjects.map((project) => (
-                  <a key={project.id} href="/developer/projects" className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-mint/20">
+                  <a key={project.id} href={`/developer/customers/${selectedCustomer.id}#projects`} className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-mint/20">
                     {project.name}
                   </a>
                 ))}
@@ -248,6 +249,133 @@ export function CustomersManager({
           <p className="text-sm text-slate">Select a customer.</p>
         )}
       </Card>
+    </div>
+  );
+}
+
+export function DeveloperCustomerAccount({
+  customer,
+  subscription,
+  plans,
+  projects,
+  workItems
+}: {
+  customer: Profile;
+  subscription?: Subscription;
+  plans: Plan[];
+  projects: Project[];
+  workItems: WorkItem[];
+}) {
+  const { language, t } = useLanguage();
+  const [phone, setPhone] = useState(customer.phone);
+  const [planName, setPlanName] = useState(subscription?.plan_name ?? plans[0]?.name ?? "Starter");
+  const [status, setStatus] = useState<SubscriptionStatus>(subscription?.status ?? "pending");
+  const [message, setMessage] = useState("");
+  const activeProjects = projects.filter((project) => project.status !== "archived");
+  const openWorkItems = workItems.filter((item) => item.status !== "complete" && item.status !== "archived");
+
+  const saveAccount = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const response = await fetch(`/api/developer/customers/${customer.id}/subscription`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        plan_name: planName,
+        status,
+        phone,
+        developer_note: String(formData.get("developer_note") ?? "")
+      })
+    });
+    if (response.ok) {
+      setMessage("Saved and account notification recorded.");
+      event.currentTarget.reset();
+    } else {
+      const payload = (await response.json()) as { error?: string };
+      setMessage(payload.error ?? "Update failed.");
+    }
+  };
+
+  return (
+    <div className="grid gap-5">
+      <Card>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <SectionHeader title={customer.full_name} description={`${customer.business_name} · ${customer.email}`} />
+          <ButtonLink href="/developer/customers" variant="secondary">
+            Back to customers
+          </ButtonLink>
+        </div>
+        <form className="grid gap-4 md:grid-cols-3" onSubmit={saveAccount}>
+          <Field label="Phone">
+            <input value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClass} required />
+          </Field>
+          <Field label="Plan">
+            <select value={planName} onChange={(event) => setPlanName(event.target.value)} className={inputClass}>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.name}>
+                  {plan.name} - {plan.monthly_price}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Status">
+            <select value={status} onChange={(event) => setStatus(event.target.value as SubscriptionStatus)} className={inputClass}>
+              {subscriptionStatuses.map((option) => (
+                <option key={option} value={option}>
+                  {t(`status.${option}`)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <div className="md:col-span-3">
+            <Field label="Developer note for account notification">
+              <textarea name="developer_note" className={`${inputClass} min-h-24`} required placeholder="Explain what changed and why." />
+            </Field>
+          </div>
+          <div className="md:col-span-3">
+            <Button type="submit">
+              <Save size={16} />
+              {t("common.save")}
+            </Button>
+            {message ? <p className="mt-3 text-sm font-semibold text-teal">{message}</p> : null}
+          </div>
+        </form>
+      </Card>
+
+      <div className="grid gap-5 xl:grid-cols-[1fr_0.85fr]">
+        <div id="projects">
+          <Card>
+            <SectionHeader title="Active projects" description="Account project list with quick access to project management." />
+            <div className="grid gap-3">
+              {activeProjects.map((project) => (
+                <a key={project.id} href="/developer/projects" className="rounded-md border border-line p-4 transition hover:border-teal">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="font-bold text-ink">{project.name}</p>
+                      <p className="text-sm text-slate">{project.service_type}</p>
+                    </div>
+                    <Badge value={project.status} language={language} />
+                  </div>
+                </a>
+              ))}
+              {!activeProjects.length ? <p className="text-sm text-slate">No active projects.</p> : null}
+            </div>
+          </Card>
+        </div>
+
+        <Card>
+          <SectionHeader title="Open work items" description="Customer requests and internal tasks." />
+          <div className="grid gap-3">
+            {openWorkItems.map((item) => (
+              <a key={item.id} href="/developer/work-items" className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-mint/20">
+                <span>{item.title}</span>
+                <span className="mt-2 block text-xs font-medium text-slate">{t(`status.${item.status}`)}</span>
+              </a>
+            ))}
+            {!openWorkItems.length ? <p className="text-sm text-slate">No open work items.</p> : null}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -515,7 +643,7 @@ function InternalNoteForm({
   );
 }
 
-export function DeveloperManager({ questions, plans }: { questions: IntakeQuestion[]; plans: Plan[] }) {
+export function DeveloperManager({ questions, plans, workflows }: { questions: IntakeQuestion[]; plans: Plan[]; workflows: OperationWorkflow[] }) {
   const { language, t } = useLanguage();
   const [rows, setRows] = useState([...questions].sort((a, b) => a.display_order - b.display_order));
   const [editing, setEditing] = useState<IntakeQuestion | null>(null);
@@ -524,6 +652,8 @@ export function DeveloperManager({ questions, plans }: { questions: IntakeQuesti
   const [activeFilter, setActiveFilter] = useState("all");
   const [planRows, setPlanRows] = useState(plans);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [workflowRows, setWorkflowRows] = useState(workflows);
+  const [editingWorkflow, setEditingWorkflow] = useState<OperationWorkflow | null>(workflows[0] ?? null);
   const filteredRows = rows.filter((question) => {
     const label = `${question.label_en} ${question.label_es}`.toLowerCase();
     return (
@@ -610,19 +740,139 @@ export function DeveloperManager({ questions, plans }: { questions: IntakeQuesti
     }
   };
 
+  const deletePlan = async (planId: string) => {
+    const response = await fetch("/api/developer/plans", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: planId })
+    });
+    if (response.ok) {
+      setPlanRows((current) => current.filter((plan) => plan.id !== planId));
+      if (editingPlan?.id === planId) setEditingPlan(null);
+    }
+  };
+
+  const saveWorkflow = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const statuses = String(formData.get("statuses") ?? "")
+      .split("\n")
+      .map((status) => status.trim())
+      .filter(Boolean);
+    const response = await fetch("/api/developer/workflows", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editingWorkflow?.id,
+        name: String(formData.get("name") ?? ""),
+        description: String(formData.get("description") ?? ""),
+        source_type: String(formData.get("source_type") ?? "manual"),
+        statuses,
+        notification_rules: String(formData.get("notification_rules") ?? ""),
+        document_rules: String(formData.get("document_rules") ?? ""),
+        active: formData.get("active") === "on"
+      })
+    });
+    if (response.ok) {
+      const result = (await response.json()) as { workflow: OperationWorkflow };
+      setWorkflowRows((current) => {
+        const without = current.filter((workflow) => workflow.id !== result.workflow.id);
+        return [...without, result.workflow].sort((a, b) => a.name.localeCompare(b.name));
+      });
+      setEditingWorkflow(result.workflow);
+    }
+  };
+
+  const deleteWorkflow = async (workflowId: string) => {
+    const response = await fetch("/api/developer/workflows", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: workflowId })
+    });
+    if (response.ok) {
+      setWorkflowRows((current) => current.filter((workflow) => workflow.id !== workflowId));
+      if (editingWorkflow?.id === workflowId) setEditingWorkflow(null);
+    }
+  };
+
   return (
     <div className="grid gap-5">
       <Card>
         <SectionHeader title={t("developer.intakeManager")} description="Configure operational workflows, intake questions, and subscription options." />
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-md bg-paper p-4">
-            <h2 className="font-bold text-ink">{t("developer.workflowConfig")}</h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {workflowStatuses.map((status) => (
-                <Badge key={status} value={status} language={language} />
-              ))}
+        <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+          <form key={editingWorkflow?.id ?? "new-workflow"} className="grid gap-4 rounded-md bg-paper p-4" onSubmit={saveWorkflow}>
+            <h2 className="font-bold text-ink">{editingWorkflow ? "Edit operation workflow" : "Create operation workflow"}</h2>
+            <Field label="Workflow name">
+              <input name="name" defaultValue={editingWorkflow?.name} className={inputClass} required />
+            </Field>
+            <Field label="Source type">
+              <select name="source_type" defaultValue={editingWorkflow?.source_type ?? "manual"} className={inputClass}>
+                {sourceTypes.map((source) => (
+                  <option key={source} value={source}>
+                    {source.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Description">
+              <textarea name="description" defaultValue={editingWorkflow?.description} className={inputClass} />
+            </Field>
+            <Field label="Statuses">
+              <textarea
+                name="statuses"
+                defaultValue={(editingWorkflow?.statuses ?? workflowStatuses).join("\n")}
+                className={`${inputClass} min-h-28`}
+                required
+              />
+            </Field>
+            <Field label="Notification rules">
+              <textarea name="notification_rules" defaultValue={editingWorkflow?.notification_rules} className={inputClass} />
+            </Field>
+            <Field label="Document rules">
+              <textarea name="document_rules" defaultValue={editingWorkflow?.document_rules} className={inputClass} />
+            </Field>
+            <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <input name="active" type="checkbox" defaultChecked={editingWorkflow?.active ?? true} />
+              {t("common.active")}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit">
+                <Save size={16} />
+                {t("common.save")}
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setEditingWorkflow(null)}>
+                New workflow
+              </Button>
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate">Work items stage through this predetermined flow. Notification and document rules are shown on work item details and can be expanded here later.</p>
+          </form>
+          <div className="grid gap-3">
+            {workflowRows.map((workflow) => (
+              <div key={workflow.id} className="rounded-md border border-line p-4">
+                <button type="button" className="w-full text-left" onClick={() => setEditingWorkflow(workflow)}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="font-bold text-ink">{workflow.name}</h2>
+                      <p className="text-sm text-slate">{workflow.source_type.replaceAll("_", " ")} · {workflow.description}</p>
+                    </div>
+                    <Badge value={workflow.active ? "active" : "archived"} language={language} />
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {workflow.statuses.map((status) => (
+                      <Badge key={status} value={status} language={language} />
+                    ))}
+                  </div>
+                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" onClick={() => setEditingWorkflow(workflow)}>
+                    Edit
+                  </Button>
+                  <Button type="button" variant="danger" onClick={() => deleteWorkflow(workflow.id)}>
+                    <Archive size={16} />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
           <div className="rounded-md bg-paper p-4">
             <h2 className="font-bold text-ink">Conditional intake rules</h2>
@@ -775,15 +1025,26 @@ export function DeveloperManager({ questions, plans }: { questions: IntakeQuesti
           </form>
           <div className="grid gap-3">
             {planRows.map((plan) => (
-              <button key={plan.id} type="button" className="rounded-md border border-line p-4 text-left transition hover:border-teal" onClick={() => setEditingPlan(plan)}>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h2 className="font-bold text-ink">{plan.name}</h2>
-                    <p className="text-sm text-slate">{plan.monthly_price} · {language === "es" ? plan.description_es : plan.description_en}</p>
+              <div key={plan.id} className="rounded-md border border-line p-4">
+                <button type="button" className="w-full text-left" onClick={() => setEditingPlan(plan)}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="font-bold text-ink">{plan.name}</h2>
+                      <p className="text-sm text-slate">{plan.monthly_price} · {language === "es" ? plan.description_es : plan.description_en}</p>
+                    </div>
+                    <Badge value={plan.requires_verification ? "reviewing" : "approved"} language={language} />
                   </div>
-                  <Badge value={plan.requires_verification ? "reviewing" : "approved"} language={language} />
+                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" onClick={() => setEditingPlan(plan)}>
+                    Edit
+                  </Button>
+                  <Button type="button" variant="danger" onClick={() => deletePlan(plan.id)}>
+                    <Archive size={16} />
+                    Delete
+                  </Button>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -818,7 +1079,7 @@ export function DeveloperProjects({ projects, customers }: { projects: Project[]
               <div>
                 <h2 className="font-bold text-ink">{project.name}</h2>
                 <p className="text-sm text-slate">
-                  <a href="/developer/customers" className="font-semibold text-ink hover:text-teal">{customer?.business_name}</a> · {project.service_type}
+                  <a href={customer ? `/developer/customers/${customer.id}` : "/developer/customers"} className="font-semibold text-ink hover:text-teal">{customer?.business_name}</a> · {project.service_type}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate">{project.description}</p>
               </div>

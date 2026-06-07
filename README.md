@@ -57,6 +57,7 @@ Seed accounts:
 ```bash
 npm run dev
 npm run build
+npm run build:github-pages
 npm run lint
 npm run test
 npm run seed
@@ -125,6 +126,8 @@ The initial app uses the local file-backed data store so it can run immediately 
 Follow [docs/production-environment.md](docs/production-environment.md) before enabling live hosting.
 
 Production deploys must use the GitHub `production` environment approval gate. Successful production migrations send an email to `aaronhenry0512@gmail.com` after SMTP secrets are configured.
+
+GitHub Pages deployment is prepared in `.github/workflows/github-pages.yml`. Because GitHub Pages is static-only, that workflow publishes a static demo/export build from `out/`; API routes, cookie-based auth, local file-backed data writes, and form submissions require a server-capable production host or future Supabase-backed implementation.
 
 Migration and rollback steps are documented in [docs/migrations-and-reverts.md](docs/migrations-and-reverts.md).
 

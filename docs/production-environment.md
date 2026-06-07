@@ -91,9 +91,33 @@ Add repository variables:
 
 The workflow sends production migration notifications to `aaronhenry0512@gmail.com`.
 
-## 6. Connect A Hosting Provider
+## 6. Configure GitHub Pages
 
-Use any host that can deploy from GitHub, such as GitHub Pages, Vercel, Netlify, Cloudflare Pages, or a VPS.
+GitHub Pages can host the static exported version of this project. It cannot run Next.js API routes, signed-cookie authentication, local file-backed data writes, or server-side form submissions. Use it for a static live preview/demo, or pair a future static frontend with Supabase/client-side services.
+
+In GitHub, go to `Settings > Pages`.
+
+Recommended settings:
+
+- Source: `GitHub Actions`
+- Workflow: `.github/workflows/github-pages.yml`
+- Production branch: `main`
+
+The workflow builds with:
+
+```sh
+npm run build:github-pages
+```
+
+It publishes the generated `out/` folder. The workflow deploy job uses the GitHub `production` environment approval gate, so deployment waits for direct approval before publishing.
+
+After the first successful deployment, set the repository variable:
+
+- `PRODUCTION_URL` - the GitHub Pages URL, usually `https://OWNER.github.io/REPOSITORY/`.
+
+## 7. Connect A Server-Capable Production Host For The Full App
+
+Use a host that can run Next.js server features, such as Vercel, Netlify, Cloudflare Pages with server support, Render, Fly.io, or a VPS, when you are ready for the full authenticated app.
 
 Recommended settings:
 
@@ -104,7 +128,7 @@ Recommended settings:
 
 Do not enable automatic production deploys that bypass GitHub environment approval. The production workflow should be the path that deploys live changes.
 
-## 7. Confirm The Code Owner
+## 8. Confirm The Code Owner
 
 `.github/CODEOWNERS` currently assigns repository-wide ownership to:
 
