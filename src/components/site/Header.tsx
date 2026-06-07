@@ -14,6 +14,20 @@ const publicLinks = [
   { href: "/contact", label: "nav.contact" }
 ];
 
+const customerLinks = [
+  { href: "/dashboard", label: "nav.dashboard" },
+  { href: "/dashboard/projects", label: "dashboard.projects" },
+  { href: "/dashboard/support", label: "dashboard.support" },
+  { href: "/dashboard/profile", label: "nav.profile" }
+];
+
+const developerLinks = [
+  { href: "/developer", label: "nav.dashboard" },
+  { href: "/developer/work-items", label: "nav.workItems" },
+  { href: "/developer/customers", label: "developer.customers" },
+  { href: "/developer/intake-manager", label: "developer.intakeManager" }
+];
+
 export function Header() {
   const { language, setLanguage, t } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -27,6 +41,9 @@ export function Header() {
   }, []);
 
   const dashboardHref = profile?.role === "developer" ? "/developer" : "/dashboard";
+  const navLinks = profile ? (profile.role === "developer" ? developerLinks : customerLinks) : publicLinks;
+  const accountHref = profile?.role === "developer" ? "/developer/site-settings" : "/dashboard/profile";
+  const accountLabel = profile?.role === "developer" ? t("developer.siteSettings") : t("nav.profile");
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -36,7 +53,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <a href="/" className="flex min-w-0 items-center gap-3">
+        <a href={profile ? dashboardHref : "/"} className="flex min-w-0 items-center gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-sm font-bold text-white">CD</span>
           <span className="min-w-0">
             <span className="block truncate text-sm font-bold text-ink">{t("brand")}</span>
@@ -45,7 +62,7 @@ export function Header() {
         </a>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {publicLinks.map((link) => (
+          {navLinks.map((link) => (
             <a key={link.href} href={link.href} className="rounded-md px-3 py-2 text-sm font-medium text-slate hover:bg-paper hover:text-ink">
               {t(link.label)}
             </a>
@@ -64,9 +81,9 @@ export function Header() {
           </button>
           {profile ? (
             <>
-              <ButtonLink href={dashboardHref} variant="secondary">
+              <ButtonLink href={accountHref} variant="secondary">
                 <UserCircle size={16} />
-                {t("nav.dashboard")}
+                {accountLabel}
               </ButtonLink>
               <Button type="button" variant="ghost" onClick={logout}>
                 <LogOut size={16} />
@@ -96,7 +113,7 @@ export function Header() {
       {menuOpen ? (
         <div className="border-t border-line bg-white px-4 py-3 lg:hidden">
           <nav className="grid gap-1">
-            {publicLinks.map((link) => (
+            {navLinks.map((link) => (
               <a key={link.href} href={link.href} className="rounded-md px-3 py-2 text-sm font-medium text-slate hover:bg-paper">
                 {t(link.label)}
               </a>
@@ -111,8 +128,8 @@ export function Header() {
             </button>
             {profile ? (
               <>
-                <a href={dashboardHref} className="rounded-md px-3 py-2 text-sm font-semibold text-ink hover:bg-paper">
-                  {t("nav.dashboard")}
+                <a href={accountHref} className="rounded-md px-3 py-2 text-sm font-semibold text-ink hover:bg-paper">
+                  {accountLabel}
                 </a>
                 <button type="button" className="rounded-md px-3 py-2 text-left text-sm font-semibold text-ink hover:bg-paper" onClick={logout}>
                   {t("nav.logout")}

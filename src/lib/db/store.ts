@@ -7,9 +7,11 @@ import type {
   AppData,
   ContactMessage,
   IntakeAnswer,
+  IntakeAnswerValue,
   IntakeQuestion,
   IntakeSubmission,
   Language,
+  Plan,
   Profile,
   ProjectStatus,
   Role,
@@ -182,7 +184,7 @@ export async function createContactMessage(input: Omit<ContactMessage, "id" | "s
   });
 }
 
-export async function submitIntake(customerId: string, answers: Record<string, string | string[] | boolean>): Promise<IntakeSubmission> {
+export async function submitIntake(customerId: string, answers: Record<string, IntakeAnswerValue>): Promise<IntakeSubmission> {
   const timestamp = new Date().toISOString();
 
   return writeData((data) => {
@@ -232,16 +234,17 @@ export async function submitIntake(customerId: string, answers: Record<string, s
   });
 }
 
-export async function createSupportRequest(customerId: string, title: string, note: string): Promise<WorkItem> {
+export async function createSupportRequest(customerId: string, category: string, title: string, note: string): Promise<WorkItem> {
   const timestamp = new Date().toISOString();
 
   return writeData((data) => {
+    const customer = data.profiles.find((profile) => profile.id === customerId);
     const workItem: WorkItem = {
       id: crypto.randomUUID(),
       customer_id: customerId,
       project_id: null,
       intake_submission_id: null,
-      title,
+      title: `${category}: ${title}`,
       source_type: "support_request",
       status: "new",
       priority: "normal",
@@ -256,8 +259,65 @@ export async function createSupportRequest(customerId: string, title: string, no
       id: crypto.randomUUID(),
       work_item_id: workItem.id,
       author_id: customerId,
-      note,
+      note: `Category: ${category}\n\n${note}`,
       visibility: "customer_visible",
+      created_at: timestamp
+    });
+    data.activity.unshift({
+      id: crypto.randomUUID(),
+      message_en: `${customer?.business_name ?? "A customer"} submitted a ${category.toLowerCase()} support request.`,
+      message_es: `${customer?.business_name ?? "Un cliente"} envio una solicitud de soporte: ${category}.`,
+      created_at: timestamp
+    });
+
+    return workItem;
+  });
+}
+
+export async function createSubscriptionChangeRequest(input: {
+  customer_id: string;
+  plan_name: string;
+  note: string;
+  requires_verification: boolean;
+}): Promise<WorkItem> {
+  const timestamp = new Date().toISOString();
+
+  return writeData((data) => {
+    const customer = data.profiles.find((profile) => profile.id === input.customer_id);
+    const workItem: WorkItem = {
+      id: crypto.randomUUID(),
+      customer_id: input.customer_id,
+      project_id: null,
+      intake_submission_id: null,
+      title: `Subscription request: ${input.plan_name}`,
+      source_type: "subscription_request",
+      status: "new",
+      priority: input.requires_verification ? "high" : "normal",
+      assigned_to: null,
+      archived: false,
+      created_at: timestamp,
+      updated_at: timestamp
+    };
+
+    data.workItems.unshift(workItem);
+    data.workItemNotes.unshift({
+      id: crypto.randomUUID(),
+      work_item_id: workItem.id,
+      author_id: input.customer_id,
+      note: [
+        `Requested plan: ${input.plan_name}`,
+        `Verification required: ${input.requires_verification ? "Yes" : "No"}`,
+        input.note ? `Customer note: ${input.note}` : ""
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      visibility: "customer_visible",
+      created_at: timestamp
+    });
+    data.activity.unshift({
+      id: crypto.randomUUID(),
+      message_en: `${customer?.business_name ?? "A customer"} requested the ${input.plan_name} plan.`,
+      message_es: `${customer?.business_name ?? "Un cliente"} solicito el plan ${input.plan_name}.`,
       created_at: timestamp
     });
 
@@ -378,6 +438,101 @@ export async function updateCustomerSubscription(input: {
     subscription.plan_name = input.plan_name;
     subscription.status = input.status;
     subscription.updated_at = timestamp;
+  });
+}
+
+export async function updateCustomerAccount(input: {
+  customer_id: string;
+  plan_name: string;
+  status: SubscriptionStatus;
+  phone: string;
+  developer_note: string;
+  author_id: string;
+}): Promise<Profile | null> {
+  const timestamp = new Date().toISOString();
+
+  return writeData((data) => {
+    const profile = data.profiles.find((item) => item.id === input.customer_id);
+    if (!profile) return null;
+
+    const subscription = data.subscriptions.find((item) => item.customer_id === input.customer_id);
+    if (subscription) {
+      subscription.plan_name = input.plan_name;
+      subscription.status = input.status;
+      subscription.updated_at = timestamp;
+    }
+
+    profile.phone = input.phone;
+    profile.updated_at = timestamp;
+
+    data.activity.unshift({
+      id: crypto.randomUUID(),
+      message_en: `Account notification queued for ${profile.email}: ${input.developer_note}`,
+      message_es: `Notificacion de cuenta preparada para ${profile.email}: ${input.developer_note}`,
+      created_at: timestamp
+    });
+
+    data.workItems.unshift({
+      id: crypto.randomUUID(),
+      customer_id: profile.id,
+      project_id: null,
+      intake_submission_id: null,
+      title: `Account update notification for ${profile.business_name}`,
+      source_type: "manual",
+      status: "complete",
+      priority: "normal",
+      assigned_to: input.author_id,
+      archived: false,
+      created_at: timestamp,
+      updated_at: timestamp
+    });
+
+    return profile;
+  });
+}
+
+export async function upsertPlan(input: Partial<Plan>): Promise<Plan> {
+  const cleanFeatures = (features: unknown): string[] => {
+    if (Array.isArray(features)) return features.map(String).map((feature) => feature.trim()).filter(Boolean);
+    if (typeof features === "string") return features.split("\n").map((feature) => feature.trim()).filter(Boolean);
+    return [];
+  };
+
+  return writeData((data) => {
+    if (input.id) {
+      const existing = data.plans.find((plan) => plan.id === input.id);
+      if (!existing) throw new Error("Plan not found.");
+      existing.name = input.name ?? existing.name;
+      existing.monthly_price = input.monthly_price ?? existing.monthly_price;
+      existing.description_en = input.description_en ?? existing.description_en;
+      existing.description_es = input.description_es ?? existing.description_es;
+      existing.features_en = input.features_en ? cleanFeatures(input.features_en) : existing.features_en;
+      existing.features_es = input.features_es ? cleanFeatures(input.features_es) : existing.features_es;
+      existing.requires_verification = input.requires_verification ?? existing.requires_verification ?? false;
+      existing.notification_note_en = input.notification_note_en ?? existing.notification_note_en ?? "";
+      existing.notification_note_es = input.notification_note_es ?? existing.notification_note_es ?? "";
+      return existing;
+    }
+
+    if (!input.name || !input.monthly_price) {
+      throw new Error("Plan name and monthly price are required.");
+    }
+
+    const plan: Plan = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      monthly_price: input.monthly_price,
+      description_en: input.description_en ?? "",
+      description_es: input.description_es ?? "",
+      features_en: cleanFeatures(input.features_en),
+      features_es: cleanFeatures(input.features_es),
+      requires_verification: input.requires_verification ?? false,
+      notification_note_en: input.notification_note_en ?? "",
+      notification_note_es: input.notification_note_es ?? ""
+    };
+
+    data.plans.push(plan);
+    return plan;
   });
 }
 

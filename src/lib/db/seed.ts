@@ -72,7 +72,10 @@ export async function createSeedData(): Promise<AppData> {
         description_en: "A practical launch plan for businesses getting online for the first time.",
         description_es: "Un plan practico para negocios que comienzan su presencia digital.",
         features_en: ["Basic website setup", "Business profile checklist", "Email support"],
-        features_es: ["Configuracion basica de sitio web", "Lista de perfil comercial", "Soporte por correo"]
+        features_es: ["Configuracion basica de sitio web", "Lista de perfil comercial", "Soporte por correo"],
+        requires_verification: false,
+        notification_note_en: "Starter requests can usually be approved after basic account review.",
+        notification_note_es: "Las solicitudes Starter normalmente se aprueban despues de una revision basica."
       },
       {
         id: "plan-growth",
@@ -81,7 +84,10 @@ export async function createSeedData(): Promise<AppData> {
         description_en: "A stronger digital foundation with ongoing support and local marketing help.",
         description_es: "Una base digital mas fuerte con soporte continuo y ayuda de mercadeo local.",
         features_en: ["Website updates", "Google Business Profile support", "Monthly social content plan"],
-        features_es: ["Actualizaciones del sitio", "Soporte de Google Business Profile", "Plan mensual de contenido social"]
+        features_es: ["Actualizaciones del sitio", "Soporte de Google Business Profile", "Plan mensual de contenido social"],
+        requires_verification: true,
+        notification_note_en: "Growth requests should be reviewed by the development team before the plan changes.",
+        notification_note_es: "Las solicitudes Growth deben ser revisadas por el equipo antes del cambio."
       },
       {
         id: "plan-premium",
@@ -90,7 +96,10 @@ export async function createSeedData(): Promise<AppData> {
         description_en: "Hands-on support for businesses that want a managed digital presence.",
         description_es: "Soporte completo para negocios que desean una presencia digital administrada.",
         features_en: ["Priority updates", "Project planning", "Campaign review", "Quarterly strategy session"],
-        features_es: ["Actualizaciones prioritarias", "Planificacion de proyectos", "Revision de campanas", "Sesion estrategica trimestral"]
+        features_es: ["Actualizaciones prioritarias", "Planificacion de proyectos", "Revision de campanas", "Sesion estrategica trimestral"],
+        requires_verification: true,
+        notification_note_en: "Premium requests require approval and a handoff plan before activation.",
+        notification_note_es: "Las solicitudes Premium requieren aprobacion y un plan de transicion."
       }
     ],
     projects: [
@@ -135,11 +144,11 @@ export async function createSeedData(): Promise<AppData> {
       },
       {
         id: "question-2",
-        label_en: "Which service do you need?",
-        label_es: "Que servicio necesita?",
-        help_text_en: "Choose the service that best matches your current need.",
-        help_text_es: "Seleccione el servicio que mejor coincide con su necesidad actual.",
-        question_type: "single_select",
+        label_en: "Which services do you need?",
+        label_es: "Que servicios necesita?",
+        help_text_en: "Choose every service that applies. You can add another service in your own words.",
+        help_text_es: "Seleccione todos los servicios que apliquen. Puede agregar otro servicio con sus propias palabras.",
+        question_type: "multi_select",
         required: true,
         display_order: 2,
         active: true,
@@ -154,7 +163,7 @@ export async function createSeedData(): Promise<AppData> {
         label_es: "Ya tiene un sitio web?",
         help_text_en: "Include the URL if one exists.",
         help_text_es: "Incluya el enlace si existe.",
-        question_type: "url",
+        question_type: "checkbox",
         required: false,
         display_order: 3,
         active: true,

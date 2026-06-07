@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
-import { updateCustomerSubscription } from "@/lib/db/store";
+import { updateCustomerAccount } from "@/lib/db/store";
 import type { SubscriptionStatus } from "@/lib/types";
 import { assertString } from "@/lib/validation";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole("developer");
+    const developer = await requireRole("developer");
     const { id } = await params;
     const body = (await request.json()) as Record<string, unknown>;
-    await updateCustomerSubscription({
+    const developerNote = assertString(body.developer_note, "Developer note", 6);
+    const profile = await updateCustomerAccount({
       customer_id: id,
       plan_name: assertString(body.plan_name, "Plan name"),
-      status: (typeof body.status === "string" ? body.status : "pending") as SubscriptionStatus
+      status: (typeof body.status === "string" ? body.status : "pending") as SubscriptionStatus,
+      phone: assertString(body.phone, "Phone"),
+      developer_note: developerNote,
+      author_id: developer.id
     });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ profile });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Subscription update failed." }, { status: 400 });
   }

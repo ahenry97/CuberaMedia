@@ -12,6 +12,7 @@ export default async function Page() {
       customers={data.profiles.filter((profile) => profile.role === "customer")}
       subscriptions={data.subscriptions}
       projects={data.projects}
+      plans={data.plans}
     />
   );
 }
