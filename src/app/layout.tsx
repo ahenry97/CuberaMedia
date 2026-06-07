@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { DevelopmentIssueBar } from "@/components/dev/DevelopmentIssueBar";
 import { Footer } from "@/components/site/Footer";
 import { Header } from "@/components/site/Header";
 import { LanguageProvider } from "@/components/LanguageProvider";
+import type { Language } from "@/lib/types";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,11 +12,15 @@ export const metadata: Metadata = {
   description: "Simple digital solutions for local businesses."
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const cookieLanguage = cookieStore.get("cubera-language")?.value;
+  const initialLanguage: Language = cookieLanguage === "es" ? "es" : "en";
+
   return (
-    <html lang="en">
+    <html lang={initialLanguage}>
       <body>
-        <LanguageProvider>
+        <LanguageProvider initialLanguage={initialLanguage}>
           <Header />
           {children}
           <Footer />

@@ -21,13 +21,14 @@ const serviceKeys = [
 export function HomePage() {
   const { t, tArray } = useLanguage();
   const process = tArray("public.process");
+  const processDescriptions = tArray("public.processDescriptions");
 
   return (
     <main>
       <section className="border-b border-line bg-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-20">
           <div className="self-center">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-coral">{t("tagline")}</p>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-teal">{t("tagline")}</p>
             <h1 className="max-w-3xl text-4xl font-bold leading-tight text-ink md:text-5xl">{t("public.heroTitle")}</h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate">{t("public.heroText")}</p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -45,7 +46,7 @@ export function HomePage() {
             <div className="rounded-md border border-line bg-white p-4">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-coral">Client workspace</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-teal">Client workspace</p>
                   <h2 className="text-lg font-bold text-ink">Rivera Cafe launch</h2>
                 </div>
                 <Badge value="in_progress" />
@@ -76,15 +77,27 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <SectionHeader title={t("public.processTitle")} />
-        <div className="grid gap-4 md:grid-cols-4">
-          {process.map((step, index) => (
-            <Card key={step} className="shadow-none">
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-mint text-sm font-bold text-ink">{index + 1}</div>
-              <h2 className="text-base font-bold text-ink">{step}</h2>
-            </Card>
-          ))}
+      <section className="border-b border-line bg-paper">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-teal">Workflow</p>
+              <h2 className="text-2xl font-bold leading-tight text-ink md:text-3xl">{t("public.processTitle")}</h2>
+            </div>
+            <p className="max-w-xl text-sm leading-6 text-slate">{t("public.servicesIntro")}</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            {process.map((step, index) => (
+              <div key={step} className="rounded-md border border-line bg-white p-4">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <span className="grid h-9 w-9 place-items-center rounded-md bg-teal text-sm font-bold text-white">{index + 1}</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate">Step</span>
+                </div>
+                <h3 className="text-base font-bold leading-6 text-ink">{step}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate">{processDescriptions[index]}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </main>
