@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies();
-  const cookieLanguage = cookieStore.get("cubera-language")?.value;
+  const cookieStore = process.env.GITHUB_PAGES === "true" ? null : await cookies();
+  const cookieLanguage = cookieStore?.get("cubera-language")?.value;
   const initialLanguage: Language = cookieLanguage === "es" ? "es" : "en";
 
   return (

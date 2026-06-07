@@ -1,9 +1,9 @@
 import { ProfileForm } from "@/components/customer/CustomerDashboard";
 import { requireRole } from "@/lib/auth/session";
-
-export const dynamic = "force-dynamic";
+import { readData } from "@/lib/db/store";
 
 export default async function Page() {
   const profile = await requireRole("customer");
-  return <ProfileForm profile={profile} />;
+  const data = await readData();
+  return <ProfileForm profile={profile} projects={data.projects.filter((project) => project.customer_id === profile.id)} />;
 }

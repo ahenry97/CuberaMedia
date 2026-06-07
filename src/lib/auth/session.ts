@@ -17,6 +17,39 @@ export interface SessionPayload {
 
 const encoder = new TextEncoder();
 
+function isGitHubPagesExport(): boolean {
+  return process.env.GITHUB_PAGES === "true";
+}
+
+function staticExportProfile(role: Role = "customer"): Profile {
+  const timestamp = "2026-06-07T00:00:00.000Z";
+  return role === "developer"
+    ? {
+        id: "profile-developer-1",
+        auth_user_id: "auth-developer-1",
+        full_name: "Aaron Henry",
+        email: "developer@example.com",
+        phone: "787-555-0100",
+        business_name: "Cubera Digital Solutions",
+        preferred_language: "en",
+        role: "developer",
+        created_at: timestamp,
+        updated_at: timestamp
+      }
+    : {
+        id: "profile-customer-1",
+        auth_user_id: "auth-customer-1",
+        full_name: "Marisol Rivera",
+        email: "customer@example.com",
+        phone: "787-555-0188",
+        business_name: "Rivera Cafe",
+        preferred_language: "en",
+        role: "customer",
+        created_at: timestamp,
+        updated_at: timestamp
+      };
+}
+
 function getSecret(): string {
   return process.env.AUTH_SECRET || "local-development-secret-change-me";
 }
@@ -88,11 +121,19 @@ export function clearSessionCookie(response: NextResponse): void {
 }
 
 export async function getCurrentSession(): Promise<SessionPayload | null> {
+  if (isGitHubPagesExport()) {
+    return null;
+  }
+
   const cookieStore = await cookies();
   return verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value);
 }
 
 export async function getCurrentProfile(): Promise<Profile | null> {
+  if (isGitHubPagesExport()) {
+    return null;
+  }
+
   const session = await getCurrentSession();
   if (!session) {
     return null;
@@ -102,6 +143,10 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 }
 
 export async function requireAuth(): Promise<Profile> {
+  if (isGitHubPagesExport()) {
+    return staticExportProfile("customer");
+  }
+
   const profile = await getCurrentProfile();
   if (!profile) {
     redirect("/login");
@@ -112,6 +157,10 @@ export async function requireAuth(): Promise<Profile> {
 
 export async function requireRole(roles: Role | Role[]): Promise<Profile> {
   const allowedRoles = Array.isArray(roles) ? roles : [roles];
+  if (isGitHubPagesExport()) {
+    return staticExportProfile(allowedRoles.includes("developer") ? "developer" : "customer");
+  }
+
   const profile = await requireAuth();
 
   if (!allowedRoles.includes(profile.role)) {

@@ -18,6 +18,8 @@ export const dictionary = {
       login: "Login",
       getStarted: "Get Started",
       dashboard: "Dashboard",
+      workItems: "Work Items",
+      profile: "Profile",
       logout: "Log out"
     },
     common: {
@@ -111,13 +113,16 @@ export const dictionary = {
       renewal: "Renewal date",
       includedServices: "Included services",
       requestSupport: "Submit support request",
-      updateProfile: "Update profile"
+      updateProfile: "Update profile",
+      manageSubscription: "Manage subscription",
+      supportRequests: "Support requests",
+      reportsDocuments: "Reports and documents"
     },
     developer: {
       overview: "Overview",
       customers: "Customers",
       workItems: "Work Items",
-      intakeManager: "Intake Manager",
+      intakeManager: "Developer Manager",
       projects: "Projects",
       contactMessages: "Contact Messages",
       siteSettings: "Site Settings",
@@ -127,7 +132,9 @@ export const dictionary = {
       projectsInProgress: "Projects in progress",
       recentActivity: "Recent activity",
       createQuestion: "Create question",
-      internalNotes: "Internal notes"
+      internalNotes: "Internal notes",
+      planCatalog: "Subscription plan catalog",
+      workflowConfig: "Workflow configuration"
     },
     status: {
       active: "Active",
@@ -149,6 +156,7 @@ export const dictionary = {
       staged: "Staged",
       internal_review: "Internal review",
       waiting_for_client_approval: "Waiting for client approval",
+      rejected: "Rejected",
       complete: "Complete",
       low: "Low",
       normal: "Normal",
@@ -170,6 +178,8 @@ export const dictionary = {
       login: "Entrar",
       getStarted: "Comenzar",
       dashboard: "Panel",
+      workItems: "Tareas",
+      profile: "Perfil",
       logout: "Salir"
     },
     common: {
@@ -263,13 +273,16 @@ export const dictionary = {
       renewal: "Fecha de renovacion",
       includedServices: "Servicios incluidos",
       requestSupport: "Enviar solicitud de soporte",
-      updateProfile: "Actualizar perfil"
+      updateProfile: "Actualizar perfil",
+      manageSubscription: "Administrar suscripcion",
+      supportRequests: "Solicitudes de soporte",
+      reportsDocuments: "Reportes y documentos"
     },
     developer: {
       overview: "Resumen",
       customers: "Clientes",
       workItems: "Tareas",
-      intakeManager: "Administrador de formularios",
+      intakeManager: "Administrador de desarrollo",
       projects: "Proyectos",
       contactMessages: "Mensajes de contacto",
       siteSettings: "Ajustes del sitio",
@@ -279,7 +292,9 @@ export const dictionary = {
       projectsInProgress: "Proyectos en progreso",
       recentActivity: "Actividad reciente",
       createQuestion: "Crear pregunta",
-      internalNotes: "Notas internas"
+      internalNotes: "Notas internas",
+      planCatalog: "Catalogo de planes",
+      workflowConfig: "Configuracion de flujo"
     },
     status: {
       active: "Activo",
@@ -301,6 +316,7 @@ export const dictionary = {
       staged: "Preparado",
       internal_review: "Revision interna",
       waiting_for_client_approval: "Esperando aprobacion del cliente",
+      rejected: "Rechazado",
       complete: "Completo",
       low: "Baja",
       normal: "Normal",

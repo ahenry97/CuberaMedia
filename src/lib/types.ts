@@ -24,6 +24,7 @@ export type WorkItemStatus =
   | "in_progress"
   | "internal_review"
   | "waiting_for_client_approval"
+  | "rejected"
   | "complete"
   | "archived";
 
@@ -42,7 +43,9 @@ export type QuestionType =
 
 export type NoteVisibility = "internal" | "customer_visible";
 
-export type SourceType = "intake" | "contact" | "support_request" | "manual";
+export type SourceType = "intake" | "contact" | "support_request" | "subscription_request" | "manual";
+
+export type IntakeAnswerValue = string | string[] | boolean | Record<string, unknown>;
 
 export interface AuthUser {
   id: string;
@@ -85,6 +88,22 @@ export interface Plan {
   description_es: string;
   features_en: string[];
   features_es: string[];
+  requires_verification?: boolean;
+  notification_note_en?: string;
+  notification_note_es?: string;
+}
+
+export interface OperationWorkflow {
+  id: string;
+  name: string;
+  description: string;
+  source_type: SourceType;
+  statuses: WorkItemStatus[];
+  notification_rules: string;
+  document_rules: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Project {
@@ -128,7 +147,7 @@ export interface IntakeAnswer {
   id: string;
   submission_id: string;
   question_id: string;
-  answer_json: string | string[] | boolean;
+  answer_json: IntakeAnswerValue;
   created_at: string;
   updated_at: string;
 }
@@ -194,6 +213,7 @@ export interface AppData {
   profiles: Profile[];
   subscriptions: Subscription[];
   plans: Plan[];
+  operationWorkflows: OperationWorkflow[];
   projects: Project[];
   intakeQuestions: IntakeQuestion[];
   intakeSubmissions: IntakeSubmission[];

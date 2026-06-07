@@ -7,9 +7,12 @@ import type {
   AppData,
   ContactMessage,
   IntakeAnswer,
+  IntakeAnswerValue,
   IntakeQuestion,
   IntakeSubmission,
   Language,
+  OperationWorkflow,
+  Plan,
   Profile,
   ProjectStatus,
   Role,
@@ -22,6 +25,20 @@ import type {
 } from "@/lib/types";
 
 const dataFilePath = () => path.resolve(process.cwd(), process.env.LOCAL_DATA_FILE ?? ".local-data/app-data.json");
+
+const workStatusOptions: WorkItemStatus[] = [
+  "new",
+  "reviewing",
+  "needs_client_info",
+  "approved",
+  "staged",
+  "in_progress",
+  "internal_review",
+  "waiting_for_client_approval",
+  "rejected",
+  "complete",
+  "archived"
+];
 
 async function ensureDataFile(): Promise<void> {
   const filePath = dataFilePath();
@@ -46,7 +63,46 @@ export async function resetDataWithSeed(): Promise<AppData> {
 export async function readData(): Promise<AppData> {
   await ensureDataFile();
   const raw = await fs.readFile(dataFilePath(), "utf8");
-  return JSON.parse(raw) as AppData;
+  const data = JSON.parse(raw) as AppData;
+  normalizeData(data);
+  return data;
+}
+
+function defaultOperationWorkflows(timestamp = new Date().toISOString()): OperationWorkflow[] {
+  return [
+    {
+      id: "workflow-default-intake",
+      name: "Default intake workflow",
+      description: "Standard workflow for new intake, support, and subscription review work items.",
+      source_type: "intake",
+      statuses: [
+        "new",
+        "reviewing",
+        "needs_client_info",
+        "approved",
+        "staged",
+        "in_progress",
+        "internal_review",
+        "waiting_for_client_approval",
+        "complete"
+      ],
+      notification_rules: "Notify customers when more information, approval, or completion is needed.",
+      document_rules: "Request documents only when a workflow stage requires client-supplied assets.",
+      active: true,
+      created_at: timestamp,
+      updated_at: timestamp
+    }
+  ];
+}
+
+function normalizeData(data: AppData): void {
+  data.operationWorkflows ??= defaultOperationWorkflows();
+  data.plans = data.plans.map((plan) => ({
+    ...plan,
+    requires_verification: plan.requires_verification ?? false,
+    notification_note_en: plan.notification_note_en ?? "",
+    notification_note_es: plan.notification_note_es ?? ""
+  }));
 }
 
 export async function writeData<T>(updater: (data: AppData) => T | Promise<T>): Promise<T> {
@@ -182,7 +238,7 @@ export async function createContactMessage(input: Omit<ContactMessage, "id" | "s
   });
 }
 
-export async function submitIntake(customerId: string, answers: Record<string, string | string[] | boolean>): Promise<IntakeSubmission> {
+export async function submitIntake(customerId: string, answers: Record<string, IntakeAnswerValue>): Promise<IntakeSubmission> {
   const timestamp = new Date().toISOString();
 
   return writeData((data) => {
@@ -232,16 +288,17 @@ export async function submitIntake(customerId: string, answers: Record<string, s
   });
 }
 
-export async function createSupportRequest(customerId: string, title: string, note: string): Promise<WorkItem> {
+export async function createSupportRequest(customerId: string, category: string, title: string, note: string): Promise<WorkItem> {
   const timestamp = new Date().toISOString();
 
   return writeData((data) => {
+    const customer = data.profiles.find((profile) => profile.id === customerId);
     const workItem: WorkItem = {
       id: crypto.randomUUID(),
       customer_id: customerId,
       project_id: null,
       intake_submission_id: null,
-      title,
+      title: `${category}: ${title}`,
       source_type: "support_request",
       status: "new",
       priority: "normal",
@@ -256,8 +313,65 @@ export async function createSupportRequest(customerId: string, title: string, no
       id: crypto.randomUUID(),
       work_item_id: workItem.id,
       author_id: customerId,
-      note,
+      note: `Category: ${category}\n\n${note}`,
       visibility: "customer_visible",
+      created_at: timestamp
+    });
+    data.activity.unshift({
+      id: crypto.randomUUID(),
+      message_en: `${customer?.business_name ?? "A customer"} submitted a ${category.toLowerCase()} support request.`,
+      message_es: `${customer?.business_name ?? "Un cliente"} envio una solicitud de soporte: ${category}.`,
+      created_at: timestamp
+    });
+
+    return workItem;
+  });
+}
+
+export async function createSubscriptionChangeRequest(input: {
+  customer_id: string;
+  plan_name: string;
+  note: string;
+  requires_verification: boolean;
+}): Promise<WorkItem> {
+  const timestamp = new Date().toISOString();
+
+  return writeData((data) => {
+    const customer = data.profiles.find((profile) => profile.id === input.customer_id);
+    const workItem: WorkItem = {
+      id: crypto.randomUUID(),
+      customer_id: input.customer_id,
+      project_id: null,
+      intake_submission_id: null,
+      title: `Subscription request: ${input.plan_name}`,
+      source_type: "subscription_request",
+      status: "new",
+      priority: input.requires_verification ? "high" : "normal",
+      assigned_to: null,
+      archived: false,
+      created_at: timestamp,
+      updated_at: timestamp
+    };
+
+    data.workItems.unshift(workItem);
+    data.workItemNotes.unshift({
+      id: crypto.randomUUID(),
+      work_item_id: workItem.id,
+      author_id: input.customer_id,
+      note: [
+        `Requested plan: ${input.plan_name}`,
+        `Verification required: ${input.requires_verification ? "Yes" : "No"}`,
+        input.note ? `Customer note: ${input.note}` : ""
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      visibility: "customer_visible",
+      created_at: timestamp
+    });
+    data.activity.unshift({
+      id: crypto.randomUUID(),
+      message_en: `${customer?.business_name ?? "A customer"} requested the ${input.plan_name} plan.`,
+      message_es: `${customer?.business_name ?? "Un cliente"} solicito el plan ${input.plan_name}.`,
       created_at: timestamp
     });
 
@@ -378,6 +492,161 @@ export async function updateCustomerSubscription(input: {
     subscription.plan_name = input.plan_name;
     subscription.status = input.status;
     subscription.updated_at = timestamp;
+  });
+}
+
+export async function updateCustomerAccount(input: {
+  customer_id: string;
+  plan_name: string;
+  status: SubscriptionStatus;
+  phone: string;
+  developer_note: string;
+  author_id: string;
+}): Promise<Profile | null> {
+  const timestamp = new Date().toISOString();
+
+  return writeData((data) => {
+    const profile = data.profiles.find((item) => item.id === input.customer_id);
+    if (!profile) return null;
+
+    const subscription = data.subscriptions.find((item) => item.customer_id === input.customer_id);
+    if (subscription) {
+      subscription.plan_name = input.plan_name;
+      subscription.status = input.status;
+      subscription.updated_at = timestamp;
+    }
+
+    profile.phone = input.phone;
+    profile.updated_at = timestamp;
+
+    data.activity.unshift({
+      id: crypto.randomUUID(),
+      message_en: `Account notification queued for ${profile.email}: ${input.developer_note}`,
+      message_es: `Notificacion de cuenta preparada para ${profile.email}: ${input.developer_note}`,
+      created_at: timestamp
+    });
+
+    data.workItems.unshift({
+      id: crypto.randomUUID(),
+      customer_id: profile.id,
+      project_id: null,
+      intake_submission_id: null,
+      title: `Account update notification for ${profile.business_name}`,
+      source_type: "manual",
+      status: "complete",
+      priority: "normal",
+      assigned_to: input.author_id,
+      archived: false,
+      created_at: timestamp,
+      updated_at: timestamp
+    });
+
+    return profile;
+  });
+}
+
+export async function upsertPlan(input: Partial<Plan>): Promise<Plan> {
+  const cleanFeatures = (features: unknown): string[] => {
+    if (Array.isArray(features)) return features.map(String).map((feature) => feature.trim()).filter(Boolean);
+    if (typeof features === "string") return features.split("\n").map((feature) => feature.trim()).filter(Boolean);
+    return [];
+  };
+
+  return writeData((data) => {
+    if (input.id) {
+      const existing = data.plans.find((plan) => plan.id === input.id);
+      if (!existing) throw new Error("Plan not found.");
+      existing.name = input.name ?? existing.name;
+      existing.monthly_price = input.monthly_price ?? existing.monthly_price;
+      existing.description_en = input.description_en ?? existing.description_en;
+      existing.description_es = input.description_es ?? existing.description_es;
+      existing.features_en = input.features_en ? cleanFeatures(input.features_en) : existing.features_en;
+      existing.features_es = input.features_es ? cleanFeatures(input.features_es) : existing.features_es;
+      existing.requires_verification = input.requires_verification ?? existing.requires_verification ?? false;
+      existing.notification_note_en = input.notification_note_en ?? existing.notification_note_en ?? "";
+      existing.notification_note_es = input.notification_note_es ?? existing.notification_note_es ?? "";
+      return existing;
+    }
+
+    if (!input.name || !input.monthly_price) {
+      throw new Error("Plan name and monthly price are required.");
+    }
+
+    const plan: Plan = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      monthly_price: input.monthly_price,
+      description_en: input.description_en ?? "",
+      description_es: input.description_es ?? "",
+      features_en: cleanFeatures(input.features_en),
+      features_es: cleanFeatures(input.features_es),
+      requires_verification: input.requires_verification ?? false,
+      notification_note_en: input.notification_note_en ?? "",
+      notification_note_es: input.notification_note_es ?? ""
+    };
+
+    data.plans.push(plan);
+    return plan;
+  });
+}
+
+export async function deletePlan(planId: string): Promise<void> {
+  await writeData((data) => {
+    data.plans = data.plans.filter((plan) => plan.id !== planId);
+  });
+}
+
+export async function upsertOperationWorkflow(input: Partial<OperationWorkflow>): Promise<OperationWorkflow> {
+  const timestamp = new Date().toISOString();
+  const cleanStatuses = (statuses: unknown): WorkItemStatus[] => {
+    const values = Array.isArray(statuses)
+      ? statuses.map(String)
+      : typeof statuses === "string"
+        ? statuses.split("\n").map((status) => status.trim())
+        : [];
+    return values.filter((status): status is WorkItemStatus => workStatusOptions.includes(status as WorkItemStatus));
+  };
+
+  return writeData((data) => {
+    if (input.id) {
+      const existing = data.operationWorkflows.find((workflow) => workflow.id === input.id);
+      if (!existing) throw new Error("Workflow not found.");
+      existing.name = input.name ?? existing.name;
+      existing.description = input.description ?? existing.description;
+      existing.source_type = input.source_type ?? existing.source_type;
+      existing.statuses = input.statuses ? cleanStatuses(input.statuses) : existing.statuses;
+      existing.notification_rules = input.notification_rules ?? existing.notification_rules;
+      existing.document_rules = input.document_rules ?? existing.document_rules;
+      existing.active = input.active ?? existing.active;
+      existing.updated_at = timestamp;
+      return existing;
+    }
+
+    if (!input.name || !input.source_type) {
+      throw new Error("Workflow name and source type are required.");
+    }
+
+    const workflow: OperationWorkflow = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      description: input.description ?? "",
+      source_type: input.source_type,
+      statuses: cleanStatuses(input.statuses).length ? cleanStatuses(input.statuses) : defaultOperationWorkflows(timestamp)[0].statuses,
+      notification_rules: input.notification_rules ?? "",
+      document_rules: input.document_rules ?? "",
+      active: input.active ?? true,
+      created_at: timestamp,
+      updated_at: timestamp
+    };
+
+    data.operationWorkflows.push(workflow);
+    return workflow;
+  });
+}
+
+export async function deleteOperationWorkflow(workflowId: string): Promise<void> {
+  await writeData((data) => {
+    data.operationWorkflows = data.operationWorkflows.filter((workflow) => workflow.id !== workflowId);
   });
 }
 

@@ -33,13 +33,14 @@ export function DashboardShell({
   const pathname = usePathname();
   const { t } = useLanguage();
   const navItems = mode === "developer" ? developerNav : customerNav;
+  const homeHref = mode === "developer" ? "/developer" : "/dashboard";
 
   return (
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_1fr] lg:px-8">
       <aside className="rounded-md border border-line bg-white p-3 shadow-soft lg:sticky lg:top-24 lg:h-fit">
-        <a href="/" className="mb-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate hover:bg-paper">
+        <a href={homeHref} className="mb-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate hover:bg-paper">
           <Home size={16} />
-          {t("nav.home")}
+          {t("nav.dashboard")}
         </a>
         <nav className="grid gap-1">
           {navItems.map((item) => {
