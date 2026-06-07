@@ -129,6 +129,8 @@ Production deploys must use the GitHub `production` environment approval gate. S
 
 GitHub Pages deployment is prepared in `.github/workflows/github-pages.yml`. Because GitHub Pages is static-only, that workflow publishes a static demo/export build from `out/`; API routes, cookie-based auth, local file-backed data writes, and form submissions require a server-capable production host or future Supabase-backed implementation.
 
+If the GitHub Pages URL opens this README instead of the website, update the repository's Pages settings to use `Settings > Pages > Build and deployment > Source > GitHub Actions`. Do not publish from a branch/root folder for this app.
+
 Migration and rollback steps are documented in [docs/migrations-and-reverts.md](docs/migrations-and-reverts.md).
 
 ## Developer Notes Workflow
