@@ -2,7 +2,10 @@
 
 import { BriefcaseBusiness, ClipboardList, ContactRound, FileText, Home, LayoutDashboard, MessageSquare, Settings, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { appHref, appPathname, isStaticExport } from "@/lib/paths";
+import { getStaticProfile, staticDashboardHref } from "@/lib/staticAuth";
 
 const customerNav = [
   { href: "/dashboard", label: "dashboard.overview", icon: LayoutDashboard },
@@ -30,15 +33,46 @@ export function DashboardShell({
   children: React.ReactNode;
   mode: "customer" | "developer";
 }) {
-  const pathname = usePathname();
+  const pathname = appPathname(usePathname());
   const { t } = useLanguage();
+  const [authorized, setAuthorized] = useState(!isStaticExport);
   const navItems = mode === "developer" ? developerNav : customerNav;
   const homeHref = mode === "developer" ? "/developer" : "/dashboard";
+
+  useEffect(() => {
+    if (!isStaticExport) return;
+
+    const profile = getStaticProfile();
+    if (!profile) {
+      window.location.href = appHref("/login");
+      return;
+    }
+
+    if (mode === "developer" && profile.role !== "developer") {
+      window.location.href = staticDashboardHref(profile.role);
+      return;
+    }
+
+    if (mode === "customer" && profile.role !== "customer") {
+      window.location.href = staticDashboardHref(profile.role);
+      return;
+    }
+
+    setAuthorized(true);
+  }, [mode]);
+
+  if (!authorized) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-10 text-sm font-semibold text-slate sm:px-6 lg:px-8">
+        Checking account access...
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_1fr] lg:px-8">
       <aside className="rounded-md border border-line bg-white p-3 shadow-soft lg:sticky lg:top-24 lg:h-fit">
-        <a href={homeHref} className="mb-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate hover:bg-paper">
+        <a href={appHref(homeHref)} className="mb-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate hover:bg-paper">
           <Home size={16} />
           {t("nav.dashboard")}
         </a>
@@ -49,7 +83,7 @@ export function DashboardShell({
             return (
               <a
                 key={item.href}
-                href={item.href}
+                href={appHref(item.href)}
                 className={`flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
                   active ? "bg-teal text-white" : "text-slate hover:bg-paper hover:text-ink"
                 }`}

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, SectionHeader } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/FormFields";
+import { appFetch } from "@/lib/staticApi";
 import type { Plan } from "@/lib/types";
 
 const serviceKeys = [
@@ -181,7 +182,7 @@ export function ContactPage() {
     event.preventDefault();
     setStatus("loading");
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/contact", {
+    const response = await appFetch("/api/contact", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.fromEntries(formData.entries()))
