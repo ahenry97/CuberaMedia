@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Download, FileText, Send } from "lucide-react";
+import { ArrowRight, Download, Edit3, FileText, History, Search, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { Badge } from "@/components/ui/Badge";
@@ -52,7 +52,7 @@ export function CustomerOverview({
         <h2 className="mb-3 text-lg font-bold text-ink">{t("dashboard.recentUpdates")}</h2>
         <div className="grid gap-3">
           {activity.slice(0, 5).map((item) => (
-            <a key={item.id} href={appHref("/dashboard/projects")} className="rounded-md bg-paper p-3 text-sm text-slate transition hover:bg-mint/20 hover:text-ink">
+            <a key={item.id} href={appHref("/dashboard/projects")} className="rounded-md bg-paper p-3 text-sm text-slate transition hover:bg-blue-50 hover:text-ink">
               {language === "es" ? item.message_es : item.message_en}
             </a>
           ))}
@@ -71,7 +71,7 @@ export function CustomerOverview({
             .filter((item) => item.source_type === "support_request" || item.source_type === "subscription_request")
             .slice(0, 4)
             .map((item) => (
-              <a key={item.id} href={appHref("/dashboard/support")} className="flex flex-col gap-2 rounded-md bg-paper p-3 text-sm transition hover:bg-mint/20 sm:flex-row sm:items-center sm:justify-between">
+              <a key={item.id} href={appHref("/dashboard/support")} className="flex flex-col gap-2 rounded-md bg-paper p-3 text-sm transition hover:bg-blue-50 sm:flex-row sm:items-center sm:justify-between">
                 <span className="font-semibold text-ink">{item.title}</span>
                 <Badge value={item.status} language={language} />
               </a>
@@ -97,7 +97,7 @@ function Metric({ title, value, badge, language = "en", href }: { title: string;
   );
 
   return href ? (
-    <a href={appHref(href)} className="rounded-md border border-line bg-white p-5 shadow-soft transition hover:border-teal hover:shadow-md">
+    <a href={appHref(href)} className="rounded-md border border-line bg-white p-5 shadow-soft transition hover:border-blue-600 hover:shadow-md">
       {content}
     </a>
   ) : (
@@ -209,7 +209,7 @@ export function SubscriptionManagePanel({ subscription, plans }: { subscription?
           <Button type="submit" disabled={status === "loading"}>
             {t("common.submit")}
           </Button>
-          {status === "success" ? <p className="text-sm font-semibold text-teal">{t("common.success")}</p> : null}
+          {status === "success" ? <p className="text-sm font-semibold text-ocean-700">{t("common.success")}</p> : null}
           {status === "error" ? <p className="text-sm font-semibold text-red-600">{t("common.error")}</p> : null}
         </form>
       </Card>
@@ -336,9 +336,11 @@ export function IntakeForm({ questions }: { questions: IntakeQuestion[] }) {
         answers[question.id] = other ? [...selected, `Other: ${other}`] : selected;
       } else if (question.id === "question-3") {
         const hasWebsite = formData.get(question.id) === "on";
+        const rawUrl = String(formData.get(`${question.id}_url`) ?? "").trim();
+        const normalizedUrl = rawUrl && !/^[a-z][a-z0-9+.-]*:/i.test(rawUrl) ? `https://${rawUrl}` : rawUrl;
         answers[question.id] = {
           hasWebsite,
-          url: hasWebsite ? String(formData.get(`${question.id}_url`) ?? "").trim() : ""
+          url: hasWebsite ? normalizedUrl : ""
         };
       } else if (question.question_type === "multi_select") {
         answers[question.id] = formData.getAll(question.id).map(String);
@@ -361,7 +363,8 @@ export function IntakeForm({ questions }: { questions: IntakeQuestion[] }) {
 
   return (
     <Card>
-      <SectionHeader title={t("dashboard.intake")} description="Questions are loaded from the stored intake configuration." />
+      <SectionHeader title={t("dashboard.intake")} description={language === "es" ? "Busque formularios activos y envie solicitudes configuradas por el equipo." : "Search active forms and submit requests configured by the development team."} />
+      <RequestFormsManager questionCount={questions.length} language={language} />
       <form className="grid gap-5" onSubmit={submit}>
         {questions.map((question) => (
           <DynamicQuestion key={question.id} question={question} language={language} />
@@ -370,10 +373,84 @@ export function IntakeForm({ questions }: { questions: IntakeQuestion[] }) {
           <Send size={16} />
           {t("common.submit")}
         </Button>
-        {status === "success" ? <p className="text-sm font-semibold text-teal">{t("common.success")}</p> : null}
+        {status === "success" ? <p className="text-sm font-semibold text-ocean-700">{t("common.success")}</p> : null}
         {status === "error" ? <p className="text-sm font-semibold text-red-600">{t("common.error")}</p> : null}
       </form>
     </Card>
+  );
+}
+
+function RequestFormsManager({ questionCount, language }: { questionCount: number; language: "en" | "es" }) {
+  const [query, setQuery] = useState("");
+  const [activeOnly, setActiveOnly] = useState(true);
+  const forms = [
+    {
+      id: "digital-project-request",
+      title: language === "es" ? "Solicitud de proyecto digital" : "Digital project request",
+      description:
+        language === "es"
+          ? `${questionCount} preguntas activas para iniciar o actualizar un proyecto.`
+          : `${questionCount} active questions for starting or updating a project.`,
+      active: questionCount > 0
+    },
+    {
+      id: "support-request",
+      title: language === "es" ? "Solicitud de soporte" : "Support request",
+      description: language === "es" ? "Abra un ticket para cambios, dudas o problemas." : "Open a ticket for changes, questions, or issues.",
+      href: "/dashboard/support",
+      active: true
+    },
+    {
+      id: "subscription-request",
+      title: language === "es" ? "Cambio de suscripcion" : "Subscription change",
+      description: language === "es" ? "Solicite un cambio de plan para revision." : "Request a plan change for review.",
+      href: "/dashboard/subscription/manage",
+      active: true
+    }
+  ];
+  const filteredForms = forms.filter((form) => {
+    const matchesQuery = `${form.title} ${form.description}`.toLowerCase().includes(query.toLowerCase());
+    return matchesQuery && (!activeOnly || form.active);
+  });
+
+  return (
+    <div className="mb-6 rounded-2xl border border-line bg-paper p-4">
+      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+        <Field label={language === "es" ? "Buscar formularios" : "Search forms"}>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-3 text-slate" size={16} />
+            <input className={`${inputClass} pl-9`} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={language === "es" ? "Proyecto, soporte o plan" : "Project, support, or plan"} />
+          </div>
+        </Field>
+        <label className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-3 text-sm font-bold text-ink">
+          <input type="checkbox" checked={activeOnly} onChange={(event) => setActiveOnly(event.target.checked)} />
+          {language === "es" ? "Solo activos" : "Active only"}
+        </label>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {filteredForms.map((form) => {
+          const content = (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-black text-ink">{form.title}</p>
+                <Badge value={form.active ? "active" : "archived"} language={language} />
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate">{form.description}</p>
+            </>
+          );
+
+          return form.href ? (
+            <a key={form.id} href={appHref(form.href)} className="rounded-2xl border border-line bg-white p-4 shadow-sm transition hover:border-blue-600">
+              {content}
+            </a>
+          ) : (
+            <div key={form.id} className="rounded-2xl border border-blue-600 bg-white p-4 shadow-sm">
+              {content}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -409,7 +486,7 @@ function DynamicQuestion({ question, language }: { question: IntakeQuestion; lan
           <input
             type="checkbox"
             name={question.id}
-            className="h-5 w-5 rounded border-line text-teal"
+            className="h-5 w-5 rounded border-line text-ocean-700"
             checked={hasWebsite}
             onChange={(event) => setHasWebsite(event.target.checked)}
           />
@@ -418,9 +495,10 @@ function DynamicQuestion({ question, language }: { question: IntakeQuestion; lan
         {hasWebsite ? (
           <input
             name={`${question.id}_url`}
-            type="url"
+            type="text"
+            inputMode="url"
             className={inputClass}
-            placeholder="https://example.com"
+            placeholder="example.com or https://example.com"
             required
           />
         ) : null}
@@ -451,7 +529,7 @@ function DynamicQuestion({ question, language }: { question: IntakeQuestion; lan
       </div>
     );
   } else if (question.question_type === "checkbox") {
-    control = <input type="checkbox" name={question.id} className="h-5 w-5 rounded border-line text-teal" />;
+    control = <input type="checkbox" name={question.id} className="h-5 w-5 rounded border-line text-ocean-700" />;
   } else {
     const typeMap = {
       short_text: "text",
@@ -478,20 +556,88 @@ const supportCategories = [
 
 export function SupportForm({ workItems = [] }: { workItems?: WorkItem[] }) {
   const { language, t } = useLanguage();
+  const initialSupportItems = workItems.filter((item) => item.source_type === "support_request" || item.source_type === "subscription_request");
+  const [items, setItems] = useState(initialSupportItems);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedId, setSelectedId] = useState(initialSupportItems[0]?.id ?? "");
+  const [editTitle, setEditTitle] = useState(initialSupportItems[0]?.title ?? "");
+  const [editNote, setEditNote] = useState("");
+  const [editStatus, setEditStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const supportItems = workItems.filter((item) => item.source_type === "support_request" || item.source_type === "subscription_request");
+  const selectedItem = items.find((item) => item.id === selectedId) ?? items[0] ?? null;
+  const statusOptions = Array.from(new Set(items.map((item) => item.status)));
+  const visibleItems = items.filter((item) => {
+    const isHistory = item.status === "complete" || item.status === "archived";
+    const matchesQuery = `${item.title} ${item.source_type}`.toLowerCase().includes(query.toLowerCase());
+    return matchesQuery && (showHistory || !isHistory) && (statusFilter === "all" || item.status === statusFilter);
+  });
+
+  useEffect(() => {
+    const item = items.find((supportItem) => supportItem.id === selectedId) ?? items[0];
+    if (!item) return;
+    setSelectedId(item.id);
+    setEditTitle(item.title);
+  }, [items, selectedId]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("loading");
     const formData = new FormData(event.currentTarget);
+    const now = new Date().toISOString();
+    const payload = Object.fromEntries(formData.entries());
+    const optimisticWorkItem: WorkItem = {
+      id: `support-static-${Date.now()}`,
+      customer_id: "",
+      project_id: null,
+      intake_submission_id: null,
+      title: `${payload.category}: ${payload.title}`,
+      source_type: "support_request",
+      status: "new",
+      priority: "normal",
+      assigned_to: null,
+      archived: false,
+      created_at: now,
+      updated_at: now
+    };
     const response = await appFetch("/api/support", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(formData.entries()))
-    });
-    setStatus(response.ok ? "success" : "error");
-    if (response.ok) event.currentTarget.reset();
+      body: JSON.stringify(payload)
+    }, { workItem: optimisticWorkItem });
+    if (response.ok) {
+      const result = (await response.json()) as { workItem?: WorkItem };
+      const savedItem = result.workItem ?? optimisticWorkItem;
+      setItems((current) => [savedItem, ...current]);
+      setSelectedId(savedItem.id);
+      setStatus("success");
+      event.currentTarget.reset();
+    } else {
+      setStatus("error");
+    }
+  };
+
+  const saveSelected = async () => {
+    if (!selectedItem) return;
+    setEditStatus("loading");
+    const updatedItem = { ...selectedItem, title: editTitle, updated_at: new Date().toISOString() };
+    const response = await appFetch(`/api/support/${selectedItem.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: editTitle, note: editNote })
+    }, { workItem: updatedItem });
+
+    if (response.ok) {
+      const result = (await response.json()) as { workItem?: WorkItem };
+      const savedItem = result.workItem ?? updatedItem;
+      setItems((current) => current.map((item) => (item.id === savedItem.id ? savedItem : item)));
+      setSelectedId(savedItem.id);
+      setEditNote("");
+      setEditStatus("success");
+    } else {
+      setEditStatus("error");
+    }
   };
 
   return (
@@ -515,25 +661,85 @@ export function SupportForm({ workItems = [] }: { workItems?: WorkItem[] }) {
             <textarea name="note" className={`${inputClass} min-h-32`} required />
           </Field>
           <Button type="submit">{t("dashboard.requestSupport")}</Button>
-          {status === "success" ? <p className="text-sm font-semibold text-teal">{t("common.success")}</p> : null}
+          {status === "success" ? <p className="text-sm font-semibold text-ocean-700">{t("common.success")}</p> : null}
           {status === "error" ? <p className="text-sm font-semibold text-red-600">{t("common.error")}</p> : null}
         </form>
       </Card>
+      <div className="grid gap-5 xl:grid-cols-[1fr_0.85fr]">
       <Card>
-        <SectionHeader title={t("dashboard.supportRequests")} description="Track support and subscription requests as the development team reviews them." />
+        <SectionHeader title={t("dashboard.supportRequests")} description={language === "es" ? "Busque, filtre y revise solicitudes abiertas. El historial se muestra solo cuando esta activado." : "Search, filter, and review open requests. Completed history is shown only when enabled."} />
+        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_auto]">
+          <Field label="Search">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-3 text-slate" size={16} />
+              <input className={`${inputClass} pl-9`} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title or source" />
+            </div>
+          </Field>
+          <Field label="Status">
+            <select className={inputClass} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="all">All</option>
+              {statusOptions.map((option) => (
+                <option key={option} value={option}>
+                  {t(`status.${option}`)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <label className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-3 text-sm font-bold text-ink">
+            <input type="checkbox" checked={showHistory} onChange={(event) => setShowHistory(event.target.checked)} />
+            <History size={16} />
+            History
+          </label>
+        </div>
         <div className="grid gap-3">
-          {supportItems.map((item) => (
-            <div key={item.id} className="flex flex-col gap-2 rounded-md border border-line p-4 sm:flex-row sm:items-center sm:justify-between">
+          {visibleItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`flex flex-col gap-2 rounded-2xl border p-4 text-left transition sm:flex-row sm:items-center sm:justify-between ${
+                selectedId === item.id ? "border-blue-600 bg-blue-50" : "border-line bg-white hover:border-blue-600"
+              }`}
+              onClick={() => setSelectedId(item.id)}
+            >
               <div>
                 <p className="font-bold text-ink">{item.title}</p>
                 <p className="text-sm text-slate">Updated {new Date(item.updated_at).toLocaleDateString()}</p>
               </div>
               <Badge value={item.status} language={language} />
-            </div>
+            </button>
           ))}
-          {!supportItems.length ? <p className="text-sm text-slate">No support requests yet.</p> : null}
+          {!visibleItems.length ? <p className="text-sm text-slate">No support requests match the current filters.</p> : null}
         </div>
       </Card>
+      <Card>
+        {selectedItem ? (
+          <div className="grid gap-4">
+            <SectionHeader title={selectedItem.title} description={language === "es" ? "Abra y edite la solicitud antes de que el equipo la marque completa." : "Open and edit the request before the team marks it complete."} />
+            <div className="grid gap-3 rounded-2xl bg-paper p-4 text-sm text-slate">
+              <div className="flex items-center justify-between gap-3">
+                <span>{selectedItem.source_type.replaceAll("_", " ")}</span>
+                <Badge value={selectedItem.status} language={language} />
+              </div>
+              <p>Created {new Date(selectedItem.created_at).toLocaleDateString()}</p>
+            </div>
+            <Field label="Request title">
+              <input className={inputClass} value={editTitle} onChange={(event) => setEditTitle(event.target.value)} disabled={selectedItem.status === "complete" || selectedItem.status === "archived"} />
+            </Field>
+            <Field label="Add update note">
+              <textarea className={`${inputClass} min-h-28`} value={editNote} onChange={(event) => setEditNote(event.target.value)} disabled={selectedItem.status === "complete" || selectedItem.status === "archived"} />
+            </Field>
+            <Button type="button" variant="dashboard" onClick={saveSelected} disabled={editStatus === "loading" || selectedItem.status === "complete" || selectedItem.status === "archived"}>
+              <Edit3 size={16} />
+              {t("common.save")}
+            </Button>
+            {editStatus === "success" ? <p className="text-sm font-semibold text-ocean-700">{t("common.success")}</p> : null}
+            {editStatus === "error" ? <p className="text-sm font-semibold text-red-600">{t("common.error")}</p> : null}
+          </div>
+        ) : (
+          <p className="text-sm text-slate">Select a request to review.</p>
+        )}
+      </Card>
+      </div>
     </div>
   );
 }
@@ -582,7 +788,7 @@ export function ProfileForm({ profile, projects = [] }: { profile: Profile; proj
           </Field>
           <div className="md:col-span-2">
             <Button type="submit">{t("dashboard.updateProfile")}</Button>
-            {status === "success" ? <p className="mt-3 text-sm font-semibold text-teal">{t("common.success")}</p> : null}
+            {status === "success" ? <p className="mt-3 text-sm font-semibold text-ocean-700">{t("common.success")}</p> : null}
             {status === "error" ? <p className="mt-3 text-sm font-semibold text-red-600">{t("common.error")}</p> : null}
           </div>
         </form>
@@ -591,7 +797,7 @@ export function ProfileForm({ profile, projects = [] }: { profile: Profile; proj
         <SectionHeader title={t("dashboard.activeProjects")} description="Quick links to active project dashboards." />
         <div className="grid gap-3">
           {activeProjects.map((project) => (
-            <a key={project.id} href={appHref(`/dashboard/projects/${project.id}`)} className="flex flex-col gap-2 rounded-md border border-line p-4 transition hover:border-teal sm:flex-row sm:items-center sm:justify-between">
+            <a key={project.id} href={appHref(`/dashboard/projects/${project.id}`)} className="flex flex-col gap-2 rounded-md border border-line p-4 transition hover:border-blue-600 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-bold text-ink">{project.name}</p>
                 <p className="text-sm text-slate">{project.service_type}</p>

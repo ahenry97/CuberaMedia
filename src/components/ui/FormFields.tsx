@@ -8,7 +8,7 @@ export function Field({
   help?: string;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-ink">
+    <label className="grid gap-2 text-sm font-bold text-ink">
       <span>{label}</span>
       {children}
       {help ? <span className="text-xs font-normal leading-5 text-slate">{help}</span> : null}
@@ -17,4 +17,4 @@ export function Field({
 }
 
 export const inputClass =
-  "min-h-11 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none transition placeholder:text-slate/60 focus:border-teal focus:ring-2 focus:ring-teal/15";
+  "min-h-11 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm font-semibold text-ink outline-none transition placeholder:text-slate/55 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10";

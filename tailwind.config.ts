@@ -9,16 +9,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#17202a",
+        navy: {
+          950: "#06111F",
+          900: "#071A2F",
+          800: "#0B2540"
+        },
+        ocean: {
+          700: "#0E7490",
+          600: "#0891B2",
+          500: "#06B6D4"
+        },
+        blue: {
+          600: "#2563EB",
+          700: "#1D4ED8"
+        },
+        ink: "#0F172A",
         slate: "#334155",
-        teal: "#0f766e",
-        coral: "#f9735b",
-        mint: "#d9f99d",
-        paper: "#f8fafc",
-        line: "#dbe3ea"
+        muted: "#64748B",
+        teal: "#0891B2",
+        coral: "#F15A4A",
+        paper: "#F8FAFC",
+        line: "#E2E8F0"
       },
       boxShadow: {
-        soft: "0 16px 45px rgba(23, 32, 42, 0.08)"
+        soft: "0 18px 50px rgba(15, 23, 42, 0.10)",
+        premium: "0 24px 70px rgba(6, 17, 31, 0.22)"
       }
     }
   },

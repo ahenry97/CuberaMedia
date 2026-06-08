@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Globe, LogOut, Menu, UserCircle } from "lucide-react";
+import { Globe, LogOut, Menu, UserCircle, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { useLanguage } from "@/components/LanguageProvider";
-import { appHref, isStaticExport } from "@/lib/paths";
+import { appHref, appPathname, isStaticExport } from "@/lib/paths";
 import { getStaticProfile, logoutStaticProfile } from "@/lib/staticAuth";
 import type { Profile } from "@/lib/types";
+import { Logo } from "@/components/site/Logo";
 
 const publicLinks = [
-  { href: "/", label: "nav.home" },
   { href: "/services", label: "nav.services" },
-  { href: "/pricing", label: "nav.pricing" },
-  { href: "/about", label: "nav.about" },
+  { href: "/#process", label: "nav.howItWorks" },
+  { href: "/pricing", label: "nav.plans" },
   { href: "/contact", label: "nav.contact" }
 ];
 
@@ -32,12 +33,21 @@ const developerLinks = [
 
 export function Header() {
   const { language, setLanguage, t } = useLanguage();
+  const pathname = appPathname(usePathname());
   const [menuOpen, setMenuOpen] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileChecked, setProfileChecked] = useState(false);
+
+  const isProtectedPath = pathname.startsWith("/dashboard") || pathname.startsWith("/developer");
+  const isDeveloperPath = pathname.startsWith("/developer");
+  const darkHeader = pathname === "/" || isProtectedPath;
 
   useEffect(() => {
     if (isStaticExport) {
-      const syncStaticProfile = () => setProfile(getStaticProfile());
+      const syncStaticProfile = () => {
+        setProfile(getStaticProfile());
+        setProfileChecked(true);
+      };
       syncStaticProfile();
       window.addEventListener("cubera-static-auth-change", syncStaticProfile);
       window.addEventListener("storage", syncStaticProfile);
@@ -50,13 +60,19 @@ export function Header() {
     fetch(appHref("/api/auth/me"))
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => setProfile(payload?.profile ?? null))
-      .catch(() => setProfile(null));
+      .catch(() => setProfile(null))
+      .finally(() => setProfileChecked(true));
   }, []);
 
-  const dashboardHref = profile?.role === "developer" ? "/developer" : "/dashboard";
-  const navLinks = profile ? (profile.role === "developer" ? developerLinks : customerLinks) : publicLinks;
+  const assumedDashboardHref = isDeveloperPath ? "/developer" : "/dashboard";
+  const dashboardHref = profile?.role === "developer" ? "/developer" : profile?.role === "customer" ? "/dashboard" : assumedDashboardHref;
+  const protectedLinks = isDeveloperPath ? developerLinks : customerLinks;
+  const navLinks = profile ? (profile.role === "developer" ? developerLinks : customerLinks) : isProtectedPath ? protectedLinks : publicLinks;
   const accountHref = profile?.role === "developer" ? "/developer/site-settings" : "/dashboard/profile";
   const accountLabel = profile?.role === "developer" ? t("developer.siteSettings") : t("nav.profile");
+  const foreground = darkHeader ? "text-white" : "text-ink";
+  const muted = darkHeader ? "text-white/70" : "text-slate";
+  const hover = darkHeader ? "hover:bg-white/10 hover:text-white" : "hover:bg-paper hover:text-ink";
 
   const logout = async () => {
     if (isStaticExport) {
@@ -70,19 +86,13 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
+    <header className={`sticky top-0 z-40 border-b backdrop-blur ${darkHeader ? "border-white/10 bg-navy-950/95" : "border-line bg-white/95"}`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <a href={appHref(profile ? dashboardHref : "/")} className="flex min-w-0 items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-sm font-bold text-white">CD</span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-bold text-ink">{t("brand")}</span>
-            <span className="hidden truncate text-xs text-slate sm:block">{t("tagline")}</span>
-          </span>
-        </a>
+        <Logo href={profile || isProtectedPath ? dashboardHref : "/"} inverse={darkHeader} />
 
         <nav className="hidden items-center gap-1 lg:flex">
           {navLinks.map((link) => (
-            <a key={link.href} href={appHref(link.href)} className="rounded-md px-3 py-2 text-sm font-medium text-slate hover:bg-paper hover:text-ink">
+            <a key={link.href} href={appHref(link.href)} className={`rounded-xl px-3 py-2 text-sm font-bold ${muted} ${hover}`}>
               {t(link.label)}
             </a>
           ))}
@@ -91,12 +101,14 @@ export function Header() {
         <div className="hidden items-center gap-2 lg:flex">
           <button
             type="button"
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-line px-3 text-sm font-semibold text-ink hover:border-teal"
+            className={`inline-flex h-11 items-center gap-2 rounded-xl border px-3 text-sm font-black ${darkHeader ? "border-white/15 text-white hover:bg-white/10" : "border-line text-ink hover:border-blue-600"}`}
             onClick={() => setLanguage(language === "en" ? "es" : "en")}
             aria-label="Toggle language"
           >
             <Globe size={16} />
-            {language.toUpperCase()}
+            <span className={language === "en" ? "text-coral" : ""}>EN</span>
+            <span className={foreground}>/</span>
+            <span className={language === "es" ? "text-coral" : ""}>ES</span>
           </button>
           {profile ? (
             <>
@@ -109,10 +121,12 @@ export function Header() {
                 {t("nav.logout")}
               </Button>
             </>
+          ) : isProtectedPath && !profileChecked ? (
+            <span className={`rounded-xl px-3 py-2 text-sm font-bold ${muted}`}>{t("common.loading")}</span>
           ) : (
             <>
               <ButtonLink href="/login" variant="secondary">
-                {t("nav.login")}
+                {t("nav.clientPortal")}
               </ButtonLink>
               <ButtonLink href="/register">{t("nav.getStarted")}</ButtonLink>
             </>
@@ -121,25 +135,25 @@ export function Header() {
 
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-line text-ink lg:hidden"
+          className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border lg:hidden ${darkHeader ? "border-white/15 text-white" : "border-line text-ink"}`}
           onClick={() => setMenuOpen((value) => !value)}
           aria-label="Open menu"
         >
-          <Menu size={20} />
+          {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       {menuOpen ? (
-        <div className="border-t border-line bg-white px-4 py-3 lg:hidden">
+        <div className={`border-t px-4 py-3 lg:hidden ${darkHeader ? "border-white/10 bg-navy-950" : "border-line bg-white"}`}>
           <nav className="grid gap-1">
             {navLinks.map((link) => (
-              <a key={link.href} href={appHref(link.href)} className="rounded-md px-3 py-2 text-sm font-medium text-slate hover:bg-paper">
+              <a key={link.href} href={appHref(link.href)} className={`rounded-xl px-3 py-2 text-sm font-bold ${muted} ${hover}`}>
                 {t(link.label)}
               </a>
             ))}
             <button
               type="button"
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-ink hover:bg-paper"
+              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-bold ${foreground} ${hover}`}
               onClick={() => setLanguage(language === "en" ? "es" : "en")}
             >
               <Globe size={16} />
@@ -147,19 +161,21 @@ export function Header() {
             </button>
             {profile ? (
               <>
-                <a href={appHref(accountHref)} className="rounded-md px-3 py-2 text-sm font-semibold text-ink hover:bg-paper">
+                <a href={appHref(accountHref)} className={`rounded-xl px-3 py-2 text-sm font-bold ${foreground} ${hover}`}>
                   {accountLabel}
                 </a>
-                <button type="button" className="rounded-md px-3 py-2 text-left text-sm font-semibold text-ink hover:bg-paper" onClick={logout}>
+                <button type="button" className={`rounded-xl px-3 py-2 text-left text-sm font-bold ${foreground} ${hover}`} onClick={logout}>
                   {t("nav.logout")}
                 </button>
               </>
+            ) : isProtectedPath && !profileChecked ? (
+              <span className={`rounded-xl px-3 py-2 text-sm font-bold ${muted}`}>{t("common.loading")}</span>
             ) : (
               <>
-                <a href={appHref("/login")} className="rounded-md px-3 py-2 text-sm font-semibold text-ink hover:bg-paper">
-                  {t("nav.login")}
+                <a href={appHref("/login")} className={`rounded-xl px-3 py-2 text-sm font-bold ${foreground} ${hover}`}>
+                  {t("nav.clientPortal")}
                 </a>
-                <a href={appHref("/register")} className="rounded-md bg-teal px-3 py-2 text-sm font-semibold text-white">
+                <a href={appHref("/register")} className="rounded-xl bg-coral px-3 py-2 text-sm font-bold text-white">
                   {t("nav.getStarted")}
                 </a>
               </>

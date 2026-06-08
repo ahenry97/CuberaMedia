@@ -1,6 +1,6 @@
 "use client";
 
-import { BriefcaseBusiness, ClipboardList, ContactRound, FileText, Home, LayoutDashboard, MessageSquare, Settings, Users } from "lucide-react";
+import { BriefcaseBusiness, ClipboardList, ContactRound, FileText, Home, LayoutDashboard, MessageSquare, Settings, Users, Wrench } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -23,7 +23,8 @@ const developerNav = [
   { href: "/developer/intake-manager", label: "developer.intakeManager", icon: FileText },
   { href: "/developer/projects", label: "developer.projects", icon: BriefcaseBusiness },
   { href: "/developer/contact-messages", label: "developer.contactMessages", icon: MessageSquare },
-  { href: "/developer/site-settings", label: "developer.siteSettings", icon: Settings }
+  { href: "/developer/site-settings", label: "developer.siteSettings", icon: Settings },
+  { href: "/developer/sites", label: "developer.websiteBuilder", icon: Wrench }
 ];
 
 export function DashboardShell({
@@ -63,16 +64,17 @@ export function DashboardShell({
 
   if (!authorized) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 text-sm font-semibold text-slate sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-10 text-sm font-bold text-slate sm:px-6 lg:px-8">
         Checking account access...
       </div>
     );
   }
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_1fr] lg:px-8">
-      <aside className="rounded-md border border-line bg-white p-3 shadow-soft lg:sticky lg:top-24 lg:h-fit">
-        <a href={appHref(homeHref)} className="mb-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate hover:bg-paper">
+    <div className="bg-paper">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[270px_1fr] lg:px-8">
+      <aside className="rounded-2xl border border-white/10 bg-navy-950 p-3 shadow-premium lg:sticky lg:top-24 lg:h-fit">
+        <a href={appHref(homeHref)} className="mb-3 flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-bold text-white/75 hover:bg-white/10 hover:text-white">
           <Home size={16} />
           {t("nav.dashboard")}
         </a>
@@ -84,8 +86,8 @@ export function DashboardShell({
               <a
                 key={item.href}
                 href={appHref(item.href)}
-                className={`flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
-                  active ? "bg-teal text-white" : "text-slate hover:bg-paper hover:text-ink"
+                className={`flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold ${
+                  active ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-white/70 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <Icon size={16} />
@@ -95,7 +97,8 @@ export function DashboardShell({
           })}
         </nav>
       </aside>
-      <main className="min-w-0">{children}</main>
+      <main className="min-w-0 pb-10">{children}</main>
+      </div>
     </div>
   );
 }

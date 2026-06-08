@@ -185,3 +185,93 @@ Root cause: Customer names were buttons that only changed local component state.
 Files changed: `src/components/developer/DeveloperDashboard.tsx`, `src/app/developer/customers/[id]/page.tsx`
 Verification: `npm run build` and `npm run build:github-pages` generated the customer account route.
 Commit: Resolution commit containing this entry.
+
+## 2026-06-08
+
+Date: 2026-06-08
+Pending note ID: 20260607214459-dashboard-intake
+Issue: Website URL entry rejected values like `google.com`.
+Root cause: The conditional website field used browser `type="url"` validation, which requires a scheme before submit.
+Files changed: `src/components/customer/CustomerDashboard.tsx`
+Verification: `npm run lint`, `npm run test`, `npm run build`, `npm run build:github-pages`; browser smoke confirmed Request Forms renders.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607214628-dashboard-support
+Issue: New support tickets did not appear after save and requests could not be opened or edited.
+Root cause: Support requests were rendered only from initial props and had no selected request editor.
+Files changed: `src/components/customer/CustomerDashboard.tsx`, `src/app/api/support/[id]/route.ts`, `src/lib/db/store.ts`
+Verification: Browser smoke submitted a static support request and confirmed it appeared immediately with success state.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607214956-dashboard
+Issue: Completed support requests needed history-only visibility plus search/filter controls.
+Root cause: Support items were displayed as a flat unfiltered list.
+Files changed: `src/components/customer/CustomerDashboard.tsx`
+Verification: Browser smoke confirmed Support search, status filter, history toggle, and editor panel render.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607215105-dashboard-intake
+Issue: Intake Form should become Request Forms with searchable active form management.
+Root cause: Customer request forms were shown as a single hardcoded intake form surface.
+Files changed: `src/components/customer/CustomerDashboard.tsx`, `src/lib/i18n.ts`
+Verification: Browser smoke confirmed Request Forms, Search forms, and active request form cards render.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607215301-developer-customers
+Issue: Saving customer subscription/account changes with a note failed.
+Root cause: The API required a six-character developer note and the UI reset uncontrolled fields after save.
+Files changed: `src/app/api/developer/customers/[id]/subscription/route.ts`, `src/components/developer/DeveloperDashboard.tsx`
+Verification: `npm run build` and static export passed; validation now accepts any non-empty developer note.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607215428-developer-work-items
+Issue: Work item status options should only show valid moves from the active stage and follow configured workflows.
+Root cause: The work item status select listed every status regardless of workflow configuration.
+Files changed: `src/components/developer/DeveloperDashboard.tsx`, `src/app/developer/work-items/page.tsx`, `src/lib/db/store.ts`
+Verification: Browser smoke confirmed Stage back, Stage, and workflow-aware status controls render.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607215716-developer-work-items
+Issue: Linked project should not be empty, and project changes should use a Transfer action.
+Root cause: The linked project field was a direct dropdown with a `None` option.
+Files changed: `src/components/developer/DeveloperDashboard.tsx`
+Verification: Browser smoke confirmed linked project display and Transfer to project controls render.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607220124-developer-intake-manager
+Issue: Developer Manager needed searchable configured items and clearer workflow transition controls.
+Root cause: The manager only exposed separate edit panels and the workflow order did not show allowed back/next movement.
+Files changed: `src/components/developer/DeveloperDashboard.tsx`
+Verification: Browser smoke confirmed Search configured items, New workflow/question/plan actions, and workflow transition summaries.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607220218-developer-projects
+Issue: Selecting a project should open an editable project review page.
+Root cause: Developer project rows only updated status inline and had no project detail route.
+Files changed: `src/components/developer/DeveloperDashboard.tsx`, `src/app/developer/projects/[id]/page.tsx`, `src/app/api/developer/projects/[id]/route.ts`, `src/lib/db/store.ts`
+Verification: Browser smoke confirmed `/developer/projects/project-1/` renders project edit and review panels.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607220319-developer-contact-messages
+Issue: Contact messages did not live update and needed a refresh button.
+Root cause: Contact messages were rendered only from initial page data and there was no list refresh endpoint.
+Files changed: `src/components/developer/DeveloperDashboard.tsx`, `src/app/api/developer/contact-messages/route.ts`, `src/lib/staticApi.ts`
+Verification: Browser smoke submitted a contact message and confirmed it appeared on Developer Contact Messages with Refresh visible.
+Commit: Pending.
+
+Date: 2026-06-08
+Pending note ID: 20260607220458-developer-customers
+Issue: Protected navigation flashed public content and account URLs needed login-first protection.
+Root cause: The global header rendered public navigation until client profile lookup completed on protected routes.
+Files changed: `src/components/site/Header.tsx`, `src/components/dashboard/DashboardShell.tsx`
+Verification: Browser smoke confirmed protected dashboard navigation renders after static login without public route fallback content.
+Commit: Pending.

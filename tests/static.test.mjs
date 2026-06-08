@@ -6,7 +6,7 @@ test("translation file includes English and Spanish dictionaries", () => {
   const source = fs.readFileSync("src/lib/i18n.ts", "utf8");
   assert.match(source, /en:\s*{/);
   assert.match(source, /es:\s*{/);
-  assert.match(source, /Cubera Digital Solutions/);
+  assert.match(source, /Cubera Media/);
 });
 
 test("public users cannot choose developer role during registration", () => {

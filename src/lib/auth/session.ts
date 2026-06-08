@@ -30,7 +30,7 @@ function staticExportProfile(role: Role = "customer"): Profile {
         full_name: "Aaron Henry",
         email: "developer@example.com",
         phone: "787-555-0100",
-        business_name: "Cubera Digital Solutions",
+        business_name: "Cubera Media",
         preferred_language: "en",
         role: "developer",
         created_at: timestamp,

@@ -8,8 +8,8 @@ import type { Language } from "@/lib/types";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Cubera Digital Solutions",
-  description: "Simple digital solutions for local businesses."
+  title: "Cubera Media",
+  description: "Websites, profiles, and marketing systems for local businesses."
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
