@@ -45,7 +45,7 @@ export async function createSeedData(): Promise<AppData> {
         full_name: "Aaron Henry",
         email: "developer@example.com",
         phone: "787-555-0100",
-        business_name: "Cubera Digital Solutions",
+        business_name: "Cubera Media",
         preferred_language: "en",
         role: "developer",
         created_at: timestamp,
@@ -255,7 +255,7 @@ export async function createSeedData(): Promise<AppData> {
     ],
     contactMessages: [],
     siteSettings: {
-      business_display_name: "Cubera Digital Solutions",
+      business_display_name: "Cubera Media",
       contact_email: "hello@cuberadigital.example",
       phone_number: "787-555-0100",
       social_links: {

@@ -14,6 +14,7 @@ import type {
   OperationWorkflow,
   Plan,
   Profile,
+  Project,
   ProjectStatus,
   Role,
   SiteSettings,
@@ -63,9 +64,18 @@ export async function resetDataWithSeed(): Promise<AppData> {
 export async function readData(): Promise<AppData> {
   await ensureDataFile();
   const raw = await fs.readFile(dataFilePath(), "utf8");
-  const data = JSON.parse(raw) as AppData;
-  normalizeData(data);
-  return data;
+
+  if (!raw.trim()) {
+    return resetDataWithSeed();
+  }
+
+  try {
+    const data = JSON.parse(raw) as AppData;
+    normalizeData(data);
+    return data;
+  } catch {
+    return resetDataWithSeed();
+  }
 }
 
 function defaultOperationWorkflows(timestamp = new Date().toISOString()): OperationWorkflow[] {
@@ -91,12 +101,42 @@ function defaultOperationWorkflows(timestamp = new Date().toISOString()): Operat
       active: true,
       created_at: timestamp,
       updated_at: timestamp
+    },
+    {
+      id: "workflow-default-support",
+      name: "Support request workflow",
+      description: "Customer support and subscription request triage workflow.",
+      source_type: "support_request",
+      statuses: ["new", "reviewing", "needs_client_info", "in_progress", "waiting_for_client_approval", "complete"],
+      notification_rules: "Notify customers when more information or approval is required.",
+      document_rules: "Attach screenshots or request details when needed.",
+      active: true,
+      created_at: timestamp,
+      updated_at: timestamp
+    },
+    {
+      id: "workflow-default-manual",
+      name: "Manual work workflow",
+      description: "Internal project task workflow.",
+      source_type: "manual",
+      statuses: ["new", "approved", "staged", "in_progress", "internal_review", "complete"],
+      notification_rules: "Internal updates are customer-visible only when notes are marked visible.",
+      document_rules: "Attach project files before approval stages.",
+      active: true,
+      created_at: timestamp,
+      updated_at: timestamp
     }
   ];
 }
 
 function normalizeData(data: AppData): void {
-  data.operationWorkflows ??= defaultOperationWorkflows();
+  const defaults = defaultOperationWorkflows();
+  data.operationWorkflows ??= defaults;
+  defaults.forEach((workflow) => {
+    if (!data.operationWorkflows.some((existing) => existing.id === workflow.id || existing.source_type === workflow.source_type)) {
+      data.operationWorkflows.push(workflow);
+    }
+  });
   data.plans = data.plans.map((plan) => ({
     ...plan,
     requires_verification: plan.requires_verification ?? false,
@@ -321,6 +361,53 @@ export async function createSupportRequest(customerId: string, category: string,
       id: crypto.randomUUID(),
       message_en: `${customer?.business_name ?? "A customer"} submitted a ${category.toLowerCase()} support request.`,
       message_es: `${customer?.business_name ?? "Un cliente"} envio una solicitud de soporte: ${category}.`,
+      created_at: timestamp
+    });
+
+    return workItem;
+  });
+}
+
+export async function updateCustomerSupportRequest(input: {
+  customer_id: string;
+  id: string;
+  title?: string;
+  note?: string;
+}): Promise<WorkItem | null> {
+  const timestamp = new Date().toISOString();
+
+  return writeData((data) => {
+    const workItem = data.workItems.find(
+      (item) =>
+        item.id === input.id &&
+        item.customer_id === input.customer_id &&
+        (item.source_type === "support_request" || item.source_type === "subscription_request")
+    );
+
+    if (!workItem || workItem.status === "complete" || workItem.status === "archived") {
+      return null;
+    }
+
+    if (input.title?.trim()) {
+      workItem.title = input.title.trim();
+    }
+    workItem.updated_at = timestamp;
+
+    if (input.note?.trim()) {
+      data.workItemNotes.unshift({
+        id: crypto.randomUUID(),
+        work_item_id: workItem.id,
+        author_id: input.customer_id,
+        note: input.note.trim(),
+        visibility: "customer_visible",
+        created_at: timestamp
+      });
+    }
+
+    data.activity.unshift({
+      id: crypto.randomUUID(),
+      message_en: `${workItem.title} was updated by the customer.`,
+      message_es: `${workItem.title} fue actualizado por el cliente.`,
       created_at: timestamp
     });
 
@@ -650,15 +737,29 @@ export async function deleteOperationWorkflow(workflowId: string): Promise<void>
   });
 }
 
-export async function updateProjectStatus(projectId: string, status: ProjectStatus): Promise<void> {
+export async function updateProject(input: {
+  id: string;
+  name?: string;
+  service_type?: string;
+  description?: string;
+  status?: ProjectStatus;
+}): Promise<Project | null> {
   const timestamp = new Date().toISOString();
 
-  await writeData((data) => {
-    const project = data.projects.find((item) => item.id === projectId);
-    if (!project) return;
-    project.status = status;
+  return writeData((data) => {
+    const project = data.projects.find((item) => item.id === input.id);
+    if (!project) return null;
+    if (input.name?.trim()) project.name = input.name.trim();
+    if (input.service_type?.trim()) project.service_type = input.service_type.trim();
+    if (input.description?.trim()) project.description = input.description.trim();
+    if (input.status) project.status = input.status;
     project.updated_at = timestamp;
+    return project;
   });
+}
+
+export async function updateProjectStatus(projectId: string, status: ProjectStatus): Promise<void> {
+  await updateProject({ id: projectId, status });
 }
 
 export async function updateContactMessageStatus(messageId: string, status: ContactMessage["status"]): Promise<ContactMessage | null> {

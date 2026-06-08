@@ -6,8 +6,9 @@ import { useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { PlaceholderProviderNotice } from "@/components/public/PublicPages";
 import { Button, ButtonLink } from "@/components/ui/Button";
-import { Card, SectionHeader } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/FormFields";
+import { Logo } from "@/components/site/Logo";
 import { appFetch } from "@/lib/staticApi";
 import { loginStaticAccount, registerStaticAccount, staticDashboardHref } from "@/lib/staticAuth";
 import { appHref, isStaticExport } from "@/lib/paths";
@@ -50,9 +51,16 @@ export function LoginForm() {
   };
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-12 sm:px-6 lg:px-8">
-      <SectionHeader title={t("auth.loginTitle")} />
-      <Card>
+    <main className="ocean-texture wave-lines min-h-[calc(100vh-76px)] px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-xl">
+      <div className="mb-7 flex justify-center">
+        <Logo inverse />
+      </div>
+      <Card className="shadow-premium">
+        <div className="mb-6 text-center">
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-coral">{t("nav.clientPortal")}</p>
+          <h1 className="mt-2 text-3xl font-black text-ink">{t("auth.loginTitle")}</h1>
+        </div>
         {notice ? <PlaceholderProviderNotice /> : null}
         <form className="mt-4 grid gap-4" onSubmit={submit}>
           <Field label={t("auth.email")}>
@@ -96,11 +104,12 @@ export function LoginForm() {
 
         <p className="mt-5 text-sm text-slate">
           {t("auth.noAccount")}{" "}
-          <a href={appHref("/register")} className="font-semibold text-teal">
+          <a href={appHref("/register")} className="font-semibold text-ocean-700">
             {t("nav.getStarted")}
           </a>
         </p>
       </Card>
+      </div>
     </main>
   );
 }
@@ -141,9 +150,16 @@ export function RegisterForm() {
   };
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
-      <SectionHeader title={t("auth.registerTitle")} />
-      <Card>
+    <main className="ocean-texture wave-lines min-h-[calc(100vh-76px)] px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-2xl">
+      <div className="mb-7 flex justify-center">
+        <Logo inverse />
+      </div>
+      <Card className="shadow-premium">
+        <div className="mb-6 text-center">
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-coral">{t("nav.getStarted")}</p>
+          <h1 className="mt-2 text-3xl font-black text-ink">{t("auth.registerTitle")}</h1>
+        </div>
         <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
           <Field label={t("auth.fullName")}>
             <input name="full_name" className={inputClass} required />
@@ -176,11 +192,12 @@ export function RegisterForm() {
 
         <p className="mt-5 text-sm text-slate">
           {t("auth.hasAccount")}{" "}
-          <a href={appHref("/login")} className="font-semibold text-teal">
+          <a href={appHref("/login")} className="font-semibold text-ocean-700">
             {t("nav.login")}
           </a>
         </p>
       </Card>
+      </div>
     </main>
   );
 }

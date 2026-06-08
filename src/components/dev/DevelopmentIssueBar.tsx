@@ -90,7 +90,7 @@ export function DevelopmentIssueBar() {
                 setNote(event.target.value);
                 if (saveState !== "idle") setSaveState("idle");
               }}
-              className="min-h-28 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/15"
+              className="min-h-28 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
               placeholder="Describe the issue, expected behavior, and anything you clicked."
             />
           </label>
@@ -115,7 +115,7 @@ export function DevelopmentIssueBar() {
       ) : (
         <button
           type="button"
-          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-bold text-white shadow-2xl transition hover:bg-teal"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-bold text-white shadow-2xl transition hover:bg-blue-600"
           onClick={() => setOpen(true)}
         >
           <Bug size={17} />

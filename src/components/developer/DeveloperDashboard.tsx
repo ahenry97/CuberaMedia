@@ -1,7 +1,7 @@
 "use client";
 
-import { Archive, ArrowDown, ArrowUp, ChevronRight, Plus, Save, Search } from "lucide-react";
-import { useState } from "react";
+import { Archive, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Plus, RefreshCw, Save, Search } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -61,6 +61,22 @@ const projectStatuses: ProjectStatus[] = [
 const subscriptionStatuses: SubscriptionStatus[] = ["active", "pending", "past_due", "cancelled"];
 const questionTypes: QuestionType[] = ["short_text", "long_text", "email", "phone", "url", "single_select", "multi_select", "checkbox", "date"];
 
+function workflowForSource(sourceType: SourceType, workflows: OperationWorkflow[]) {
+  return (
+    workflows.find((workflow) => workflow.active && workflow.source_type === sourceType) ??
+    workflows.find((workflow) => workflow.active && workflow.source_type === "intake") ??
+    workflows.find((workflow) => workflow.active) ??
+    null
+  );
+}
+
+function validWorkflowMoves(currentStatus: WorkItemStatus, statuses: WorkItemStatus[]) {
+  if (currentStatus === "archived") return ["archived"] as WorkItemStatus[];
+  const index = statuses.indexOf(currentStatus);
+  if (index === -1) return Array.from(new Set([currentStatus, statuses[0]].filter(Boolean))) as WorkItemStatus[];
+  return [statuses[index - 1], statuses[index], statuses[index + 1]].filter(Boolean) as WorkItemStatus[];
+}
+
 export function DeveloperOverview({
   customers,
   workItems,
@@ -92,7 +108,7 @@ export function DeveloperOverview({
         <h2 className="mb-3 text-lg font-bold text-ink">{t("developer.recentActivity")}</h2>
         <div className="grid gap-3">
           {activity.slice(0, 8).map((item) => (
-            <a key={item.id} href={appHref("/developer/work-items")} className="rounded-md bg-paper p-3 text-sm text-slate transition hover:bg-mint/20 hover:text-ink">
+            <a key={item.id} href={appHref("/developer/work-items")} className="rounded-md bg-paper p-3 text-sm text-slate transition hover:bg-blue-50 hover:text-ink">
               {language === "es" ? item.message_es : item.message_en}
             </a>
           ))}
@@ -111,7 +127,7 @@ function Metric({ title, value, href }: { title: string; value: number; href?: s
   );
 
   return href ? (
-    <a href={appHref(href)} className="rounded-md border border-line bg-white p-5 shadow-soft transition hover:border-teal hover:shadow-md">
+    <a href={appHref(href)} className="rounded-md border border-line bg-white p-5 shadow-soft transition hover:border-blue-600 hover:shadow-md">
       {content}
     </a>
   ) : (
@@ -158,7 +174,6 @@ export function CustomersManager({
       setCustomerRows((current) => current.map((customer) => (customer.id === customerId ? { ...customer, phone } : customer)));
       setSubscriptionRows((current) => current.map((row) => (row.customer_id === customerId ? { ...row, plan_name: planName, status } : row)));
       setMessages((current) => ({ ...current, [customerId]: "Saved and account notification recorded." }));
-      event.currentTarget.reset();
     } else {
       const payload = (await response.json()) as { error?: string };
       setMessages((current) => ({ ...current, [customerId]: payload.error ?? "Update failed." }));
@@ -177,7 +192,7 @@ export function CustomersManager({
               <form key={customer.id} className="grid gap-4 rounded-md border border-line p-4" onSubmit={(event) => saveAccount(event, customer.id)}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <a href={appHref(`/developer/customers/${customer.id}`)} className="text-left" onClick={() => setSelectedCustomerId(customer.id)}>
-                    <p className="font-bold text-ink hover:text-teal">{customer.full_name}</p>
+                    <p className="font-bold text-ink hover:text-ocean-700">{customer.full_name}</p>
                     <p className="text-sm text-slate">{customer.business_name} · {customer.email}</p>
                   </a>
                   <ButtonLink href={`/developer/customers/${customer.id}`} variant="secondary">
@@ -208,7 +223,7 @@ export function CustomersManager({
                   </Field>
                   <div className="rounded-md bg-paper p-3">
                     <p className="text-sm font-semibold text-slate">Projects</p>
-                    <a href={appHref(`/developer/customers/${customer.id}#projects`)} className="mt-1 block text-2xl font-bold text-ink hover:text-teal">{activeProjectCount}</a>
+                    <a href={appHref(`/developer/customers/${customer.id}#projects`)} className="mt-1 block text-2xl font-bold text-ink hover:text-ocean-700">{activeProjectCount}</a>
                   </div>
                 </div>
                 <Field label="Developer note for account notification">
@@ -219,7 +234,7 @@ export function CustomersManager({
                     <Save size={16} />
                     {t("common.save")}
                   </Button>
-                  {messages[customer.id] ? <p className="text-sm font-semibold text-teal">{messages[customer.id]}</p> : null}
+                  {messages[customer.id] ? <p className="text-sm font-semibold text-ocean-700">{messages[customer.id]}</p> : null}
                 </div>
               </form>
             );
@@ -239,7 +254,7 @@ export function CustomersManager({
               <p className="text-sm font-semibold text-slate">Active projects</p>
               <div className="mt-2 grid gap-2">
                 {selectedProjects.map((project) => (
-                  <a key={project.id} href={appHref(`/developer/customers/${selectedCustomer.id}#projects`)} className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-mint/20">
+                  <a key={project.id} href={appHref(`/developer/customers/${selectedCustomer.id}#projects`)} className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-blue-50">
                     {project.name}
                   </a>
                 ))}
@@ -291,7 +306,6 @@ export function DeveloperCustomerAccount({
     });
     if (response.ok) {
       setMessage("Saved and account notification recorded.");
-      event.currentTarget.reset();
     } else {
       const payload = (await response.json()) as { error?: string };
       setMessage(payload.error ?? "Update failed.");
@@ -339,7 +353,7 @@ export function DeveloperCustomerAccount({
               <Save size={16} />
               {t("common.save")}
             </Button>
-            {message ? <p className="mt-3 text-sm font-semibold text-teal">{message}</p> : null}
+            {message ? <p className="mt-3 text-sm font-semibold text-ocean-700">{message}</p> : null}
           </div>
         </form>
       </Card>
@@ -350,7 +364,7 @@ export function DeveloperCustomerAccount({
             <SectionHeader title="Active projects" description="Account project list with quick access to project management." />
             <div className="grid gap-3">
               {activeProjects.map((project) => (
-                <a key={project.id} href={appHref("/developer/projects")} className="rounded-md border border-line p-4 transition hover:border-teal">
+                <a key={project.id} href={appHref("/developer/projects")} className="rounded-md border border-line p-4 transition hover:border-blue-600">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="font-bold text-ink">{project.name}</p>
@@ -369,7 +383,7 @@ export function DeveloperCustomerAccount({
           <SectionHeader title="Open work items" description="Customer requests and internal tasks." />
           <div className="grid gap-3">
             {openWorkItems.map((item) => (
-              <a key={item.id} href={appHref("/developer/work-items")} className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-mint/20">
+              <a key={item.id} href={appHref("/developer/work-items")} className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-blue-50">
                 <span>{item.title}</span>
                 <span className="mt-2 block text-xs font-medium text-slate">{t(`status.${item.status}`)}</span>
               </a>
@@ -389,7 +403,8 @@ export function WorkItemsManager({
   answers,
   questions,
   notes,
-  projects
+  projects,
+  workflows
 }: {
   workItems: WorkItem[];
   customers: Profile[];
@@ -398,6 +413,7 @@ export function WorkItemsManager({
   questions: IntakeQuestion[];
   notes: WorkItemNote[];
   projects: Project[];
+  workflows: OperationWorkflow[];
 }) {
   const { language, t } = useLanguage();
   const [rows, setRows] = useState(workItems);
@@ -409,6 +425,15 @@ export function WorkItemsManager({
   const selectedSubmission = selected?.intake_submission_id ? submissions.find((submission) => submission.id === selected.intake_submission_id) : null;
   const selectedAnswers = selectedSubmission ? answers.filter((answer) => answer.submission_id === selectedSubmission.id) : [];
   const selectedNotes = selected ? notes.filter((note) => note.work_item_id === selected.id) : [];
+  const selectedWorkflow = selected ? workflowForSource(selected.source_type, workflows) : null;
+  const selectedWorkflowStatuses = selectedWorkflow?.statuses?.length ? selectedWorkflow.statuses : workflowStatuses;
+  const selectedStatusOptions = selected ? validWorkflowMoves(selected.status, selectedWorkflowStatuses) : workflowStatuses;
+  const projectOptions = selected ? projects.filter((project) => project.customer_id === selected.customer_id && project.status !== "archived") : [];
+  const linkedProject = selected?.project_id
+    ? projects.find((project) => project.id === selected.project_id) ?? null
+    : projectOptions[0] ?? null;
+  const defaultTransferProjectId = linkedProject?.id ?? projectOptions[0]?.id ?? "";
+  const [transferProjectId, setTransferProjectId] = useState(defaultTransferProjectId);
   const filteredRows = rows.filter((item) => {
     const customer = customers.find((profile) => profile.id === item.customer_id);
     const matchesQuery = `${item.title} ${customer?.business_name ?? ""}`.toLowerCase().includes(query.toLowerCase());
@@ -419,8 +444,13 @@ export function WorkItemsManager({
       (sourceFilter === "all" || item.source_type === sourceFilter)
     );
   });
-  const selectedStageIndex = selected ? workflowStatuses.indexOf(selected.status) : -1;
-  const canStageSelected = selectedStageIndex >= 0 && selectedStageIndex < workflowStatuses.length - 1;
+  const selectedStageIndex = selected ? selectedWorkflowStatuses.indexOf(selected.status) : -1;
+  const canStageSelected = selectedStageIndex >= 0 && selectedStageIndex < selectedWorkflowStatuses.length - 1;
+  const canStageBackSelected = selectedStageIndex > 0;
+
+  useEffect(() => {
+    setTransferProjectId(defaultTransferProjectId);
+  }, [defaultTransferProjectId, selected?.id]);
 
   const updateWorkItem = async (id: string, updates: Partial<WorkItem> & { note?: string }) => {
     const applyUpdate = (item: WorkItem): WorkItem => ({
@@ -449,10 +479,10 @@ export function WorkItemsManager({
     setSelected(payload.workItem);
   };
 
-  const stageSelected = async () => {
+  const stageSelected = async (direction: "forward" | "back" = "forward") => {
     if (!selected) return;
-    const currentIndex = workflowStatuses.indexOf(selected.status);
-    const nextStatus = workflowStatuses[currentIndex + 1];
+    const currentIndex = selectedWorkflowStatuses.indexOf(selected.status);
+    const nextStatus = selectedWorkflowStatuses[currentIndex + (direction === "forward" ? 1 : -1)];
     if (!nextStatus) return;
     await updateWorkItem(selected.id, {
       status: nextStatus,
@@ -509,7 +539,7 @@ export function WorkItemsManager({
               <button
                 key={item.id}
                 type="button"
-                className={`rounded-md border p-4 text-left transition ${selected?.id === item.id ? "border-teal bg-teal/5" : "border-line bg-white hover:bg-paper"}`}
+                className={`rounded-md border p-4 text-left transition ${selected?.id === item.id ? "border-blue-600 bg-blue-50" : "border-line bg-white hover:bg-paper"}`}
                 onClick={() => setSelected(item)}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -536,7 +566,7 @@ export function WorkItemsManager({
             <div className="grid gap-3 md:grid-cols-2">
               <Field label="Status">
                 <select className={inputClass} value={selected.status} onChange={(event) => updateWorkItem(selected.id, { status: event.target.value as WorkItemStatus })}>
-                  {workflowStatuses.map((status) => (
+                  {selectedStatusOptions.map((status) => (
                     <option key={status} value={status}>
                       {t(`status.${status}`)}
                     </option>
@@ -553,30 +583,38 @@ export function WorkItemsManager({
                 </select>
               </Field>
               <Field label="Linked project">
-                <select
-                  className={inputClass}
-                  value={selected.project_id ?? ""}
-                  onChange={(event) => updateWorkItem(selected.id, { project_id: event.target.value || null })}
-                >
-                  <option value="">None</option>
-                  {projects.map((project) => (
+                <div className={`${inputClass} flex items-center bg-paper`}>
+                  {linkedProject?.name ?? "Account project queue"}
+                </div>
+              </Field>
+              <Field label="Transfer to project">
+                <select className={inputClass} value={transferProjectId} onChange={(event) => setTransferProjectId(event.target.value)}>
+                  {projectOptions.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
                     </option>
                   ))}
+                  {!projectOptions.length ? <option value="">No customer projects</option> : null}
                 </select>
               </Field>
-              <div className="flex items-end">
-                <Button type="button" variant="secondary" onClick={stageSelected} disabled={!canStageSelected}>
+              <div className="flex flex-wrap items-end gap-2 md:col-span-2">
+                <Button type="button" variant="secondary" onClick={() => stageSelected("back")} disabled={!canStageBackSelected}>
+                  <ChevronLeft size={16} />
+                  Stage back
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => stageSelected("forward")} disabled={!canStageSelected}>
                   <ChevronRight size={16} />
                   Stage
+                </Button>
+                <Button type="button" variant="dashboard" onClick={() => updateWorkItem(selected.id, { project_id: transferProjectId || null })} disabled={!transferProjectId}>
+                  Transfer
                 </Button>
               </div>
             </div>
             <div className="grid gap-3 rounded-md bg-paper p-4 text-sm text-slate md:grid-cols-2">
               <div>
                 <p className="font-bold text-ink">Workflow notices</p>
-                <p className="mt-1">Notification behavior is configured in Developer Manager and referenced when a work item is staged.</p>
+                <p className="mt-1">Active workflow: {selectedWorkflow?.name ?? "Default workflow"}. Status choices show the current stage, previous stage, and next stage.</p>
               </div>
               <div>
                 <p className="font-bold text-ink">Documents</p>
@@ -671,6 +709,7 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [workflowRows, setWorkflowRows] = useState(workflows);
   const [editingWorkflow, setEditingWorkflow] = useState<OperationWorkflow | null>(workflows[0] ?? null);
+  const [managerSearch, setManagerSearch] = useState("");
   const filteredRows = rows.filter((question) => {
     const label = `${question.label_en} ${question.label_es}`.toLowerCase();
     return (
@@ -679,6 +718,22 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
       (activeFilter === "all" || String(question.active) === activeFilter)
     );
   });
+  const managerQuery = managerSearch.toLowerCase();
+  const filteredWorkflowRows = workflowRows.filter((workflow) => `${workflow.name} ${workflow.description} ${workflow.source_type}`.toLowerCase().includes(managerQuery));
+  const filteredPlanRows = planRows.filter((plan) => `${plan.name} ${plan.description_en} ${plan.description_es}`.toLowerCase().includes(managerQuery));
+  const filteredManagerQuestions = rows.filter((question) => `${question.label_en} ${question.label_es}`.toLowerCase().includes(managerQuery));
+  const openAddTarget = (target: "workflow" | "question" | "plan") => {
+    if (target === "workflow") {
+      setEditingWorkflow(null);
+      window.location.hash = "workflow-editor";
+    } else if (target === "question") {
+      setEditing(null);
+      window.location.hash = "question-editor";
+    } else {
+      setEditingPlan(null);
+      window.location.hash = "plan-editor";
+    }
+  };
 
   const saveQuestion = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -899,9 +954,47 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
   return (
     <div className="grid gap-5">
       <Card>
+        <SectionHeader title={t("developer.intakeManager")} description="Search configured workflows, request questions, and subscription plan tasks from one manager view." />
+        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto] md:items-end">
+          <Field label="Search configured items">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-3 text-slate" size={16} />
+              <input className={`${inputClass} pl-9`} value={managerSearch} onChange={(event) => setManagerSearch(event.target.value)} placeholder="Workflow, question, plan, or task" />
+            </div>
+          </Field>
+          <Button type="button" variant="secondary" onClick={() => openAddTarget("workflow")}>
+            <Plus size={16} />
+            New workflow
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => openAddTarget("question")}>
+            <Plus size={16} />
+            New question
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => openAddTarget("plan")}>
+            <Plus size={16} />
+            New plan
+          </Button>
+        </div>
+        <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <div className="rounded-2xl border border-line bg-paper p-4">
+            <p className="font-black text-ink">Workflows</p>
+            <p className="mt-1 text-sm text-slate">{filteredWorkflowRows.length} configured</p>
+          </div>
+          <div className="rounded-2xl border border-line bg-paper p-4">
+            <p className="font-black text-ink">Request questions</p>
+            <p className="mt-1 text-sm text-slate">{filteredManagerQuestions.length} configured</p>
+          </div>
+          <div className="rounded-2xl border border-line bg-paper p-4">
+            <p className="font-black text-ink">Plan tasks</p>
+            <p className="mt-1 text-sm text-slate">{filteredPlanRows.length} configured</p>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
         <SectionHeader title={t("developer.intakeManager")} description="Configure operational workflows, intake questions, and subscription options." />
         <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-          <form key={editingWorkflow?.id ?? "new-workflow"} className="grid gap-4 rounded-md bg-paper p-4" onSubmit={saveWorkflow}>
+          <form id="workflow-editor" key={editingWorkflow?.id ?? "new-workflow"} className="grid gap-4 rounded-md bg-paper p-4" onSubmit={saveWorkflow}>
             <h2 className="font-bold text-ink">{editingWorkflow ? "Edit operation workflow" : "Create operation workflow"}</h2>
             <Field label="Workflow name">
               <input name="name" defaultValue={editingWorkflow?.name} className={inputClass} required />
@@ -947,7 +1040,7 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
             </div>
           </form>
           <div className="grid gap-3">
-            {workflowRows.map((workflow) => (
+            {filteredWorkflowRows.map((workflow) => (
               <div key={workflow.id} className="rounded-md border border-line p-4">
                 <button type="button" className="w-full text-left" onClick={() => setEditingWorkflow(workflow)}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -960,6 +1053,13 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
                   <div className="mt-3 flex flex-wrap gap-2">
                     {workflow.statuses.map((status) => (
                       <Badge key={status} value={status} language={language} />
+                    ))}
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs font-semibold text-slate">
+                    {workflow.statuses.map((status, index) => (
+                      <span key={`${workflow.id}-${status}`} className="rounded-lg bg-paper px-3 py-2">
+                        {t(`status.${status}`)} · back: {workflow.statuses[index - 1] ? t(`status.${workflow.statuses[index - 1]}`) : "none"} · next: {workflow.statuses[index + 1] ? t(`status.${workflow.statuses[index + 1]}`) : "none"}
+                      </span>
                     ))}
                   </div>
                 </button>
@@ -985,7 +1085,7 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
       <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
         <Card>
           <SectionHeader title={editing ? "Edit question" : t("developer.createQuestion")} />
-          <form key={editing?.id ?? "new-question"} className="grid gap-4" onSubmit={saveQuestion}>
+          <form id="question-editor" key={editing?.id ?? "new-question"} className="grid gap-4" onSubmit={saveQuestion}>
             <Field label="Label EN">
               <input name="label_en" defaultValue={editing?.label_en} className={inputClass} required />
             </Field>
@@ -1088,9 +1188,9 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
       </div>
 
       <Card>
-        <SectionHeader title={t("developer.planCatalog")} description="Plans shown to customers when they request a subscription change." />
+          <SectionHeader title={t("developer.planCatalog")} description="Plans shown to customers when they request a subscription change." />
         <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-          <form key={editingPlan?.id ?? "new-plan"} className="grid gap-4" onSubmit={savePlan}>
+          <form id="plan-editor" key={editingPlan?.id ?? "new-plan"} className="grid gap-4" onSubmit={savePlan}>
             <Field label="Plan name">
               <input name="name" defaultValue={editingPlan?.name} className={inputClass} required />
             </Field>
@@ -1125,7 +1225,7 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
             </Button>
           </form>
           <div className="grid gap-3">
-            {planRows.map((plan) => (
+            {filteredPlanRows.map((plan) => (
               <div key={plan.id} className="rounded-md border border-line p-4">
                 <button type="button" className="w-full text-left" onClick={() => setEditingPlan(plan)}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -1183,9 +1283,9 @@ export function DeveloperProjects({ projects, customers }: { projects: Project[]
           return (
             <div key={project.id} className="grid gap-3 rounded-md border border-line p-4 md:grid-cols-[1fr_220px]">
               <div>
-                <h2 className="font-bold text-ink">{project.name}</h2>
+                <a href={appHref(`/developer/projects/${project.id}`)} className="text-lg font-black text-ink hover:text-blue-700">{project.name}</a>
                 <p className="text-sm text-slate">
-                  <a href={appHref(customer ? `/developer/customers/${customer.id}` : "/developer/customers")} className="font-semibold text-ink hover:text-teal">{customer?.business_name}</a> · {project.service_type}
+                  <a href={appHref(customer ? `/developer/customers/${customer.id}` : "/developer/customers")} className="font-semibold text-ink hover:text-ocean-700">{customer?.business_name}</a> · {project.service_type}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate">{project.description}</p>
               </div>
@@ -1198,6 +1298,9 @@ export function DeveloperProjects({ projects, customers }: { projects: Project[]
                     </option>
                   ))}
                 </select>
+                <ButtonLink href={`/developer/projects/${project.id}`} variant="secondary">
+                  {t("common.viewDetails")}
+                </ButtonLink>
               </div>
             </div>
           );
@@ -1207,9 +1310,120 @@ export function DeveloperProjects({ projects, customers }: { projects: Project[]
   );
 }
 
+export function DeveloperProjectDetail({ project, customer, workItems }: { project: Project; customer?: Profile; workItems: WorkItem[] }) {
+  const { language, t } = useLanguage();
+  const [form, setForm] = useState(project);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const relatedWorkItems = workItems.filter((item) => item.project_id === project.id);
+
+  const saveProject = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setStatus("loading");
+    const response = await appFetch(`/api/developer/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: form.name,
+        service_type: form.service_type,
+        description: form.description,
+        status: form.status
+      })
+    }, { project: form });
+
+    if (response.ok) {
+      const result = (await response.json()) as { project?: Project };
+      setForm(result.project ?? form);
+      setStatus("success");
+    } else {
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[1fr_0.85fr]">
+      <Card>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <SectionHeader title={form.name} description={`${customer?.business_name ?? "Customer account"} · ${form.service_type}`} />
+          <ButtonLink href="/developer/projects" variant="secondary">
+            Back to projects
+          </ButtonLink>
+        </div>
+        <form className="grid gap-4" onSubmit={saveProject}>
+          <Field label="Project name">
+            <input className={inputClass} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          </Field>
+          <Field label="Service type">
+            <input className={inputClass} value={form.service_type} onChange={(event) => setForm({ ...form, service_type: event.target.value })} />
+          </Field>
+          <Field label="Description">
+            <textarea className={`${inputClass} min-h-32`} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
+          </Field>
+          <Field label="Status">
+            <select className={inputClass} value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as ProjectStatus })}>
+              {projectStatuses.map((option) => (
+                <option key={option} value={option}>
+                  {t(`status.${option}`)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Button type="submit" variant="dashboard" disabled={status === "loading"}>
+            <Save size={16} />
+            {t("common.save")}
+          </Button>
+          {status === "success" ? <p className="text-sm font-bold text-ocean-700">{t("common.success")}</p> : null}
+          {status === "error" ? <p className="text-sm font-bold text-red-600">{t("common.error")}</p> : null}
+        </form>
+      </Card>
+
+      <Card>
+        <SectionHeader title="Project review" description="Related work items and current project state." />
+        <div className="grid gap-3">
+          <div className="rounded-2xl bg-paper p-4">
+            <p className="text-sm font-bold text-slate">Current status</p>
+            <div className="mt-2">
+              <Badge value={form.status} language={language} />
+            </div>
+          </div>
+          {relatedWorkItems.map((item) => (
+            <a key={item.id} href={appHref("/developer/work-items")} className="rounded-2xl border border-line p-4 transition hover:border-blue-600">
+              <p className="font-black text-ink">{item.title}</p>
+              <p className="mt-1 text-sm text-slate">{item.source_type.replaceAll("_", " ")}</p>
+            </a>
+          ))}
+          {!relatedWorkItems.length ? <p className="text-sm text-slate">No linked work items yet.</p> : null}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export function ContactMessagesManager({ messages }: { messages: ContactMessage[] }) {
   const { language, t } = useLanguage();
   const [rows, setRows] = useState(messages);
+  const [refreshStatus, setRefreshStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const refresh = useCallback(async () => {
+    setRefreshStatus("loading");
+    const response = await appFetch("/api/developer/contact-messages");
+    if (response.ok) {
+      const payload = (await response.json()) as { messages?: ContactMessage[] };
+      setRows(payload.messages ?? []);
+      setRefreshStatus("success");
+    } else {
+      setRefreshStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    const interval = window.setInterval(refresh, 15000);
+    window.addEventListener("cubera-static-data-change", refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("cubera-static-data-change", refresh);
+    };
+  }, [refresh]);
 
   const archive = async (id: string) => {
     if (isStaticExport) {
@@ -1229,7 +1443,13 @@ export function ContactMessagesManager({ messages }: { messages: ContactMessage[
 
   return (
     <Card>
-      <SectionHeader title={t("developer.contactMessages")} />
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <SectionHeader title={t("developer.contactMessages")} description="Review new contact submissions and refresh for messages submitted during testing." />
+        <Button type="button" variant="secondary" onClick={refresh} disabled={refreshStatus === "loading"}>
+          <RefreshCw size={16} />
+          Refresh
+        </Button>
+      </div>
       <div className="grid gap-3">
         {rows.map((message) => (
           <div key={message.id} className="rounded-md border border-line p-4">
@@ -1311,7 +1531,7 @@ export function SiteSettingsForm({ settings }: { settings: SiteSettings }) {
             <Save size={16} />
             {t("common.save")}
           </Button>
-          {status === "success" ? <p className="mt-3 text-sm font-semibold text-teal">{t("common.success")}</p> : null}
+          {status === "success" ? <p className="mt-3 text-sm font-semibold text-ocean-700">{t("common.success")}</p> : null}
           {status === "error" ? <p className="mt-3 text-sm font-semibold text-red-600">{t("common.error")}</p> : null}
         </div>
       </form>

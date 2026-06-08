@@ -44,7 +44,7 @@ const demoUsers: StaticUser[] = [
       full_name: "Aaron Henry",
       email: "developer@example.com",
       phone: "787-555-0100",
-      business_name: "Cubera Digital Solutions",
+      business_name: "Cubera Media",
       preferred_language: "en",
       role: "developer",
       created_at: timestamp,
@@ -135,9 +135,14 @@ function normalizeEmail(email: FormDataEntryValue | string | null) {
 function readUsers(): StaticUser[] {
   if (!hasStorage()) return demoUsers;
 
-  const raw = storageGet(usersKey);
-  const stored = raw ? (JSON.parse(raw) as StaticUser[]) : [];
-  return [...demoUsers, ...stored];
+  try {
+    const raw = storageGet(usersKey);
+    const stored = raw ? (JSON.parse(raw) as StaticUser[]) : [];
+    return [...demoUsers, ...stored];
+  } catch {
+    storageRemove(usersKey);
+    return demoUsers;
+  }
 }
 
 function writeStoredUsers(users: StaticUser[]) {

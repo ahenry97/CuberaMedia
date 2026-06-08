@@ -14,6 +14,7 @@ export default async function Page() {
       questions={data.intakeQuestions}
       notes={data.workItemNotes}
       projects={data.projects}
+      workflows={data.operationWorkflows}
     />
   );
 }

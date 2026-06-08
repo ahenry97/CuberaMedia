@@ -9,7 +9,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const developer = await requireRole("developer");
     const { id } = await params;
     const body = (await request.json()) as Record<string, unknown>;
-    const developerNote = assertString(body.developer_note, "Developer note", 6);
+    const developerNote = assertString(body.developer_note, "Developer note", 1);
     const profile = await updateCustomerAccount({
       customer_id: id,
       plan_name: assertString(body.plan_name, "Plan name"),

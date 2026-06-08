@@ -1,8 +1,8 @@
-# Cubera Digital Solutions
+# Cubera Media
 
-Simple digital solutions for local businesses.
+Websites, profiles, and marketing systems for local businesses.
 
-This is a bilingual English/Spanish Next.js app for a small-business digital services workflow. It includes public service pages, registration/login, customer dashboards, dynamic intake forms, developer dashboards, contact message handling, work item tracking, and production migration documentation.
+This is a bilingual English/Spanish Next.js app for a small-business digital services workflow. It includes public service pages, registration/login, customer dashboards, dynamic request forms, developer dashboards, contact message handling, work item tracking, and production migration documentation.
 
 ## Tech Stack
 
@@ -71,7 +71,7 @@ Customer users can:
 
 - View their dashboard.
 - View subscription and projects.
-- Submit dynamic intake forms.
+- Submit dynamic request forms.
 - Create support requests.
 - Update basic profile information.
 
@@ -79,8 +79,8 @@ Developer users can:
 
 - View all customers.
 - View and update work items.
-- Read intake submissions and answers.
-- Create, edit, reorder, activate, deactivate, and archive intake questions.
+- Read request form submissions and answers.
+- Create, edit, reorder, activate, deactivate, and archive request questions.
 - Update subscriptions and project statuses.
 - View contact form submissions.
 - Update site settings placeholders.
@@ -113,7 +113,7 @@ The Supabase/PostgreSQL schema lives in:
 supabase/migrations/202606060001_initial_schema.sql
 ```
 
-Seed SQL for configurable site data and intake questions lives in:
+Seed SQL for configurable site data and request questions lives in:
 
 ```text
 supabase/seed.sql
