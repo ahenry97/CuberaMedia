@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from "react";
+import { appHref } from "@/lib/paths";
 
 const styles = {
   primary: "bg-teal text-white hover:bg-teal/90",
@@ -35,7 +36,7 @@ export function ButtonLink({
 }) {
   return (
     <a
-      href={href}
+      href={appHref(href)}
       className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition ${styles[variant]} ${className}`}
     >
       {children}

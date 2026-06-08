@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Globe, LogOut, Menu, UserCircle } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { useLanguage } from "@/components/LanguageProvider";
+import { appHref } from "@/lib/paths";
 import type { Profile } from "@/lib/types";
 
 const publicLinks = [
@@ -34,7 +35,11 @@ export function Header() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    fetch("/api/auth/me")
+    if (process.env.NEXT_PUBLIC_STATIC_EXPORT === "true") {
+      return;
+    }
+
+    fetch(appHref("/api/auth/me"))
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => setProfile(payload?.profile ?? null))
       .catch(() => setProfile(null));
@@ -47,13 +52,13 @@ export function Header() {
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/";
+    window.location.href = appHref("/");
   };
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <a href={profile ? dashboardHref : "/"} className="flex min-w-0 items-center gap-3">
+        <a href={appHref(profile ? dashboardHref : "/")} className="flex min-w-0 items-center gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-sm font-bold text-white">CD</span>
           <span className="min-w-0">
             <span className="block truncate text-sm font-bold text-ink">{t("brand")}</span>
@@ -63,7 +68,7 @@ export function Header() {
 
         <nav className="hidden items-center gap-1 lg:flex">
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} className="rounded-md px-3 py-2 text-sm font-medium text-slate hover:bg-paper hover:text-ink">
+            <a key={link.href} href={appHref(link.href)} className="rounded-md px-3 py-2 text-sm font-medium text-slate hover:bg-paper hover:text-ink">
               {t(link.label)}
             </a>
           ))}
@@ -114,7 +119,7 @@ export function Header() {
         <div className="border-t border-line bg-white px-4 py-3 lg:hidden">
           <nav className="grid gap-1">
             {navLinks.map((link) => (
-              <a key={link.href} href={link.href} className="rounded-md px-3 py-2 text-sm font-medium text-slate hover:bg-paper">
+              <a key={link.href} href={appHref(link.href)} className="rounded-md px-3 py-2 text-sm font-medium text-slate hover:bg-paper">
                 {t(link.label)}
               </a>
             ))}
@@ -128,7 +133,7 @@ export function Header() {
             </button>
             {profile ? (
               <>
-                <a href={accountHref} className="rounded-md px-3 py-2 text-sm font-semibold text-ink hover:bg-paper">
+                <a href={appHref(accountHref)} className="rounded-md px-3 py-2 text-sm font-semibold text-ink hover:bg-paper">
                   {accountLabel}
                 </a>
                 <button type="button" className="rounded-md px-3 py-2 text-left text-sm font-semibold text-ink hover:bg-paper" onClick={logout}>
@@ -137,10 +142,10 @@ export function Header() {
               </>
             ) : (
               <>
-                <a href="/login" className="rounded-md px-3 py-2 text-sm font-semibold text-ink hover:bg-paper">
+                <a href={appHref("/login")} className="rounded-md px-3 py-2 text-sm font-semibold text-ink hover:bg-paper">
                   {t("nav.login")}
                 </a>
-                <a href="/register" className="rounded-md bg-teal px-3 py-2 text-sm font-semibold text-white">
+                <a href={appHref("/register")} className="rounded-md bg-teal px-3 py-2 text-sm font-semibold text-white">
                   {t("nav.getStarted")}
                 </a>
               </>
