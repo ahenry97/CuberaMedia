@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, SectionHeader } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/FormFields";
+import { appHref, isStaticExport } from "@/lib/paths";
+import { appFetch } from "@/lib/staticApi";
 import type {
   ActivityItem,
   ContactMessage,
@@ -90,7 +92,7 @@ export function DeveloperOverview({
         <h2 className="mb-3 text-lg font-bold text-ink">{t("developer.recentActivity")}</h2>
         <div className="grid gap-3">
           {activity.slice(0, 8).map((item) => (
-            <a key={item.id} href="/developer/work-items" className="rounded-md bg-paper p-3 text-sm text-slate transition hover:bg-mint/20 hover:text-ink">
+            <a key={item.id} href={appHref("/developer/work-items")} className="rounded-md bg-paper p-3 text-sm text-slate transition hover:bg-mint/20 hover:text-ink">
               {language === "es" ? item.message_es : item.message_en}
             </a>
           ))}
@@ -109,7 +111,7 @@ function Metric({ title, value, href }: { title: string; value: number; href?: s
   );
 
   return href ? (
-    <a href={href} className="rounded-md border border-line bg-white p-5 shadow-soft transition hover:border-teal hover:shadow-md">
+    <a href={appHref(href)} className="rounded-md border border-line bg-white p-5 shadow-soft transition hover:border-teal hover:shadow-md">
       {content}
     </a>
   ) : (
@@ -139,7 +141,7 @@ export function CustomersManager({
   const saveAccount = async (event: React.FormEvent<HTMLFormElement>, customerId: string) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const response = await fetch(`/api/developer/customers/${customerId}/subscription`, {
+    const response = await appFetch(`/api/developer/customers/${customerId}/subscription`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -174,7 +176,7 @@ export function CustomersManager({
             return (
               <form key={customer.id} className="grid gap-4 rounded-md border border-line p-4" onSubmit={(event) => saveAccount(event, customer.id)}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <a href={`/developer/customers/${customer.id}`} className="text-left" onClick={() => setSelectedCustomerId(customer.id)}>
+                  <a href={appHref(`/developer/customers/${customer.id}`)} className="text-left" onClick={() => setSelectedCustomerId(customer.id)}>
                     <p className="font-bold text-ink hover:text-teal">{customer.full_name}</p>
                     <p className="text-sm text-slate">{customer.business_name} · {customer.email}</p>
                   </a>
@@ -206,7 +208,7 @@ export function CustomersManager({
                   </Field>
                   <div className="rounded-md bg-paper p-3">
                     <p className="text-sm font-semibold text-slate">Projects</p>
-                    <a href={`/developer/customers/${customer.id}#projects`} className="mt-1 block text-2xl font-bold text-ink hover:text-teal">{activeProjectCount}</a>
+                    <a href={appHref(`/developer/customers/${customer.id}#projects`)} className="mt-1 block text-2xl font-bold text-ink hover:text-teal">{activeProjectCount}</a>
                   </div>
                 </div>
                 <Field label="Developer note for account notification">
@@ -237,7 +239,7 @@ export function CustomersManager({
               <p className="text-sm font-semibold text-slate">Active projects</p>
               <div className="mt-2 grid gap-2">
                 {selectedProjects.map((project) => (
-                  <a key={project.id} href={`/developer/customers/${selectedCustomer.id}#projects`} className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-mint/20">
+                  <a key={project.id} href={appHref(`/developer/customers/${selectedCustomer.id}#projects`)} className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-mint/20">
                     {project.name}
                   </a>
                 ))}
@@ -277,7 +279,7 @@ export function DeveloperCustomerAccount({
   const saveAccount = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const response = await fetch(`/api/developer/customers/${customer.id}/subscription`, {
+    const response = await appFetch(`/api/developer/customers/${customer.id}/subscription`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -348,7 +350,7 @@ export function DeveloperCustomerAccount({
             <SectionHeader title="Active projects" description="Account project list with quick access to project management." />
             <div className="grid gap-3">
               {activeProjects.map((project) => (
-                <a key={project.id} href="/developer/projects" className="rounded-md border border-line p-4 transition hover:border-teal">
+                <a key={project.id} href={appHref("/developer/projects")} className="rounded-md border border-line p-4 transition hover:border-teal">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="font-bold text-ink">{project.name}</p>
@@ -367,7 +369,7 @@ export function DeveloperCustomerAccount({
           <SectionHeader title="Open work items" description="Customer requests and internal tasks." />
           <div className="grid gap-3">
             {openWorkItems.map((item) => (
-              <a key={item.id} href="/developer/work-items" className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-mint/20">
+              <a key={item.id} href={appHref("/developer/work-items")} className="rounded-md bg-paper p-3 text-sm font-semibold text-ink hover:bg-mint/20">
                 <span>{item.title}</span>
                 <span className="mt-2 block text-xs font-medium text-slate">{t(`status.${item.status}`)}</span>
               </a>
@@ -421,7 +423,22 @@ export function WorkItemsManager({
   const canStageSelected = selectedStageIndex >= 0 && selectedStageIndex < workflowStatuses.length - 1;
 
   const updateWorkItem = async (id: string, updates: Partial<WorkItem> & { note?: string }) => {
-    const response = await fetch(`/api/developer/work-items/${id}`, {
+    const applyUpdate = (item: WorkItem): WorkItem => ({
+      ...item,
+      ...updates,
+      updated_at: new Date().toISOString()
+    });
+
+    if (isStaticExport) {
+      const currentItem = rows.find((item) => item.id === id);
+      if (!currentItem) return;
+      const updated = applyUpdate(currentItem);
+      setRows((current) => current.map((item) => (item.id === id ? updated : item)));
+      setSelected(updated);
+      return;
+    }
+
+    const response = await appFetch(`/api/developer/work-items/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates)
@@ -681,7 +698,24 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
         .map((option) => option.trim())
         .filter(Boolean)
     };
-    const response = await fetch("/api/developer/intake-questions", {
+    if (isStaticExport) {
+      const question: IntakeQuestion = {
+        ...payload,
+        id: payload.id ?? `question-static-${Date.now()}`,
+        display_order: editing?.display_order ?? rows.length + 1,
+        created_at: editing?.created_at ?? new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setRows((current) => {
+        const without = current.filter((item) => item.id !== question.id);
+        return [...without, question].sort((a, b) => a.display_order - b.display_order);
+      });
+      setEditing(null);
+      event.currentTarget.reset();
+      return;
+    }
+
+    const response = await appFetch("/api/developer/intake-questions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -698,7 +732,13 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
   };
 
   const patchQuestion = async (question: IntakeQuestion, updates: Partial<IntakeQuestion>) => {
-    const response = await fetch(`/api/developer/intake-questions/${question.id}`, {
+    if (isStaticExport) {
+      const updated = { ...question, ...updates, updated_at: new Date().toISOString() };
+      setRows((current) => current.map((item) => (item.id === question.id ? updated : item)).sort((a, b) => a.display_order - b.display_order));
+      return;
+    }
+
+    const response = await appFetch(`/api/developer/intake-questions/${question.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates)
@@ -724,7 +764,35 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
       notification_note_en: String(formData.get("notification_note_en") ?? ""),
       notification_note_es: String(formData.get("notification_note_es") ?? "")
     };
-    const response = await fetch("/api/developer/plans", {
+    if (isStaticExport) {
+      const plan: Plan = {
+        id: payload.id ?? `plan-static-${Date.now()}`,
+        name: payload.name,
+        monthly_price: payload.monthly_price,
+        description_en: payload.description_en,
+        description_es: payload.description_es,
+        features_en: payload.features_en
+          .split("\n")
+          .map((feature) => feature.trim())
+          .filter(Boolean),
+        features_es: payload.features_es
+          .split("\n")
+          .map((feature) => feature.trim())
+          .filter(Boolean),
+        requires_verification: payload.requires_verification,
+        notification_note_en: payload.notification_note_en,
+        notification_note_es: payload.notification_note_es
+      };
+      setPlanRows((current) => {
+        const without = current.filter((item) => item.id !== plan.id);
+        return [...without, plan].sort((a, b) => a.name.localeCompare(b.name));
+      });
+      setEditingPlan(null);
+      event.currentTarget.reset();
+      return;
+    }
+
+    const response = await appFetch("/api/developer/plans", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -741,7 +809,13 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
   };
 
   const deletePlan = async (planId: string) => {
-    const response = await fetch("/api/developer/plans", {
+    if (isStaticExport) {
+      setPlanRows((current) => current.filter((plan) => plan.id !== planId));
+      if (editingPlan?.id === planId) setEditingPlan(null);
+      return;
+    }
+
+    const response = await appFetch("/api/developer/plans", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: planId })
@@ -759,7 +833,28 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
       .split("\n")
       .map((status) => status.trim())
       .filter(Boolean);
-    const response = await fetch("/api/developer/workflows", {
+    if (isStaticExport) {
+      const workflow: OperationWorkflow = {
+        id: editingWorkflow?.id ?? `workflow-static-${Date.now()}`,
+        name: String(formData.get("name") ?? ""),
+        description: String(formData.get("description") ?? ""),
+        source_type: String(formData.get("source_type") ?? "manual") as SourceType,
+        statuses: statuses as WorkItemStatus[],
+        notification_rules: String(formData.get("notification_rules") ?? ""),
+        document_rules: String(formData.get("document_rules") ?? ""),
+        active: formData.get("active") === "on",
+        created_at: editingWorkflow?.created_at ?? new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setWorkflowRows((current) => {
+        const without = current.filter((item) => item.id !== workflow.id);
+        return [...without, workflow].sort((a, b) => a.name.localeCompare(b.name));
+      });
+      setEditingWorkflow(workflow);
+      return;
+    }
+
+    const response = await appFetch("/api/developer/workflows", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -784,7 +879,13 @@ export function DeveloperManager({ questions, plans, workflows }: { questions: I
   };
 
   const deleteWorkflow = async (workflowId: string) => {
-    const response = await fetch("/api/developer/workflows", {
+    if (isStaticExport) {
+      setWorkflowRows((current) => current.filter((workflow) => workflow.id !== workflowId));
+      if (editingWorkflow?.id === workflowId) setEditingWorkflow(null);
+      return;
+    }
+
+    const response = await appFetch("/api/developer/workflows", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: workflowId })
@@ -1058,7 +1159,12 @@ export function DeveloperProjects({ projects, customers }: { projects: Project[]
   const [rows, setRows] = useState(projects);
 
   const update = async (projectId: string, status: ProjectStatus) => {
-    const response = await fetch(`/api/developer/projects/${projectId}`, {
+    if (isStaticExport) {
+      setRows((current) => current.map((project) => (project.id === projectId ? { ...project, status, updated_at: new Date().toISOString() } : project)));
+      return;
+    }
+
+    const response = await appFetch(`/api/developer/projects/${projectId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status })
@@ -1079,7 +1185,7 @@ export function DeveloperProjects({ projects, customers }: { projects: Project[]
               <div>
                 <h2 className="font-bold text-ink">{project.name}</h2>
                 <p className="text-sm text-slate">
-                  <a href={customer ? `/developer/customers/${customer.id}` : "/developer/customers"} className="font-semibold text-ink hover:text-teal">{customer?.business_name}</a> · {project.service_type}
+                  <a href={appHref(customer ? `/developer/customers/${customer.id}` : "/developer/customers")} className="font-semibold text-ink hover:text-teal">{customer?.business_name}</a> · {project.service_type}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate">{project.description}</p>
               </div>
@@ -1106,7 +1212,12 @@ export function ContactMessagesManager({ messages }: { messages: ContactMessage[
   const [rows, setRows] = useState(messages);
 
   const archive = async (id: string) => {
-    const response = await fetch(`/api/developer/contact-messages/${id}`, {
+    if (isStaticExport) {
+      setRows((current) => current.map((message) => (message.id === id ? { ...message, status: "archived" } : message)));
+      return;
+    }
+
+    const response = await appFetch(`/api/developer/contact-messages/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "archived" })
@@ -1151,7 +1262,7 @@ export function SiteSettingsForm({ settings }: { settings: SiteSettings }) {
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const response = await fetch("/api/developer/site-settings", {
+    const response = await appFetch("/api/developer/site-settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form)

@@ -8,6 +8,9 @@ import { PlaceholderProviderNotice } from "@/components/public/PublicPages";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, SectionHeader } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/FormFields";
+import { appFetch } from "@/lib/staticApi";
+import { loginStaticAccount, registerStaticAccount, staticDashboardHref } from "@/lib/staticAuth";
+import { appHref, isStaticExport } from "@/lib/paths";
 
 export function LoginForm() {
   const { t } = useLanguage();
@@ -19,7 +22,19 @@ export function LoginForm() {
     event.preventDefault();
     setError("");
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/auth/login", {
+
+    if (isStaticExport) {
+      const result = loginStaticAccount(formData);
+      if (!result.ok || !result.profile) {
+        setError(result.error ?? t("common.error"));
+        return;
+      }
+
+      window.location.href = staticDashboardHref(result.profile.role);
+      return;
+    }
+
+    const response = await appFetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.fromEntries(formData.entries()))
@@ -31,7 +46,7 @@ export function LoginForm() {
     }
 
     const payload = (await response.json()) as { redirectTo: string };
-    window.location.href = payload.redirectTo;
+    window.location.href = appHref(payload.redirectTo);
   };
 
   return (
@@ -54,19 +69,34 @@ export function LoginForm() {
         </form>
 
         <div className="mt-5 grid gap-2">
-          <ButtonLink href="/api/auth/oauth/google" variant="secondary">
-            <Mail size={16} />
-            {t("auth.google")}
-          </ButtonLink>
-          <ButtonLink href="/api/auth/oauth/apple" variant="secondary">
-            <Apple size={16} />
-            {t("auth.apple")}
-          </ButtonLink>
+          {isStaticExport ? (
+            <>
+              <Button type="button" variant="secondary" onClick={() => setError("Google login requires a server-capable host. Use email/password for this GitHub Pages demo.")}>
+                <Mail size={16} />
+                {t("auth.google")}
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setError("Apple login requires a server-capable host. Use email/password for this GitHub Pages demo.")}>
+                <Apple size={16} />
+                {t("auth.apple")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <ButtonLink href="/api/auth/oauth/google" variant="secondary">
+                <Mail size={16} />
+                {t("auth.google")}
+              </ButtonLink>
+              <ButtonLink href="/api/auth/oauth/apple" variant="secondary">
+                <Apple size={16} />
+                {t("auth.apple")}
+              </ButtonLink>
+            </>
+          )}
         </div>
 
         <p className="mt-5 text-sm text-slate">
           {t("auth.noAccount")}{" "}
-          <a href="/register" className="font-semibold text-teal">
+          <a href={appHref("/register")} className="font-semibold text-teal">
             {t("nav.getStarted")}
           </a>
         </p>
@@ -83,7 +113,19 @@ export function RegisterForm() {
     event.preventDefault();
     setError("");
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/auth/register", {
+
+    if (isStaticExport) {
+      const result = registerStaticAccount(formData);
+      if (!result.ok || !result.profile) {
+        setError(result.error ?? t("common.error"));
+        return;
+      }
+
+      window.location.href = staticDashboardHref(result.profile.role);
+      return;
+    }
+
+    const response = await appFetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.fromEntries(formData.entries()))
@@ -95,7 +137,7 @@ export function RegisterForm() {
       return;
     }
 
-    window.location.href = "/dashboard";
+    window.location.href = appHref("/dashboard");
   };
 
   return (
@@ -134,7 +176,7 @@ export function RegisterForm() {
 
         <p className="mt-5 text-sm text-slate">
           {t("auth.hasAccount")}{" "}
-          <a href="/login" className="font-semibold text-teal">
+          <a href={appHref("/login")} className="font-semibold text-teal">
             {t("nav.login")}
           </a>
         </p>

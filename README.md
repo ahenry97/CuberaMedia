@@ -131,6 +131,8 @@ GitHub Pages deployment is prepared in `.github/workflows/github-pages.yml`. Bec
 
 If the GitHub Pages URL opens this README instead of the website, update the repository's Pages settings to use `Settings > Pages > Build and deployment > Source > GitHub Actions`. Do not publish from a branch/root folder for this app.
 
+The GitHub Pages export includes browser-local demo authentication so the seeded customer and developer dashboards can be tested on the static site. Use `customer@example.com` or `developer@example.com` with `Password123!`. New registered users are stored only in the visitor's browser and default to the customer role.
+
 Migration and rollback steps are documented in [docs/migrations-and-reverts.md](docs/migrations-and-reverts.md).
 
 ## Developer Notes Workflow

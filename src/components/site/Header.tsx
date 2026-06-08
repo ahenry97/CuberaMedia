@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Globe, LogOut, Menu, UserCircle } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { useLanguage } from "@/components/LanguageProvider";
-import { appHref } from "@/lib/paths";
+import { appHref, isStaticExport } from "@/lib/paths";
+import { getStaticProfile, logoutStaticProfile } from "@/lib/staticAuth";
 import type { Profile } from "@/lib/types";
 
 const publicLinks = [
@@ -35,8 +36,15 @@ export function Header() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_STATIC_EXPORT === "true") {
-      return;
+    if (isStaticExport) {
+      const syncStaticProfile = () => setProfile(getStaticProfile());
+      syncStaticProfile();
+      window.addEventListener("cubera-static-auth-change", syncStaticProfile);
+      window.addEventListener("storage", syncStaticProfile);
+      return () => {
+        window.removeEventListener("cubera-static-auth-change", syncStaticProfile);
+        window.removeEventListener("storage", syncStaticProfile);
+      };
     }
 
     fetch(appHref("/api/auth/me"))
@@ -51,7 +59,13 @@ export function Header() {
   const accountLabel = profile?.role === "developer" ? t("developer.siteSettings") : t("nav.profile");
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    if (isStaticExport) {
+      logoutStaticProfile();
+      window.location.href = appHref("/");
+      return;
+    }
+
+    await fetch(appHref("/api/auth/logout"), { method: "POST" });
     window.location.href = appHref("/");
   };
 

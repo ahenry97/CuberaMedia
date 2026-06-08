@@ -1,12 +1,15 @@
 "use client";
 
 import { ArrowRight, Download, FileText, Send } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, SectionHeader } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/FormFields";
+import { appHref } from "@/lib/paths";
+import { appFetch } from "@/lib/staticApi";
+import { getStaticProfile } from "@/lib/staticAuth";
 import type { ActivityItem, IntakeAnswerValue, IntakeQuestion, Plan, Profile, Project, Subscription, WorkItem } from "@/lib/types";
 
 export function CustomerOverview({
@@ -23,12 +26,17 @@ export function CustomerOverview({
   activity: ActivityItem[];
 }) {
   const { language, t } = useLanguage();
+  const [displayProfile, setDisplayProfile] = useState(profile);
   const activeProjects = projects.filter((project) => project.status !== "completed" && project.status !== "archived");
   const pendingWorkItems = workItems.filter((item) => item.status !== "complete" && item.status !== "archived");
 
+  useEffect(() => {
+    setDisplayProfile(getStaticProfile() ?? profile);
+  }, [profile]);
+
   return (
     <div className="grid gap-5">
-      <SectionHeader title={`${t("dashboard.welcome")}, ${profile.full_name}`} description={profile.business_name} />
+      <SectionHeader title={`${t("dashboard.welcome")}, ${displayProfile.full_name}`} description={displayProfile.business_name} />
       <div className="grid gap-4 md:grid-cols-3">
         <Metric
           title={t("dashboard.currentPlan")}
@@ -44,7 +52,7 @@ export function CustomerOverview({
         <h2 className="mb-3 text-lg font-bold text-ink">{t("dashboard.recentUpdates")}</h2>
         <div className="grid gap-3">
           {activity.slice(0, 5).map((item) => (
-            <a key={item.id} href="/dashboard/projects" className="rounded-md bg-paper p-3 text-sm text-slate transition hover:bg-mint/20 hover:text-ink">
+            <a key={item.id} href={appHref("/dashboard/projects")} className="rounded-md bg-paper p-3 text-sm text-slate transition hover:bg-mint/20 hover:text-ink">
               {language === "es" ? item.message_es : item.message_en}
             </a>
           ))}
@@ -63,7 +71,7 @@ export function CustomerOverview({
             .filter((item) => item.source_type === "support_request" || item.source_type === "subscription_request")
             .slice(0, 4)
             .map((item) => (
-              <a key={item.id} href="/dashboard/support" className="flex flex-col gap-2 rounded-md bg-paper p-3 text-sm transition hover:bg-mint/20 sm:flex-row sm:items-center sm:justify-between">
+              <a key={item.id} href={appHref("/dashboard/support")} className="flex flex-col gap-2 rounded-md bg-paper p-3 text-sm transition hover:bg-mint/20 sm:flex-row sm:items-center sm:justify-between">
                 <span className="font-semibold text-ink">{item.title}</span>
                 <Badge value={item.status} language={language} />
               </a>
@@ -89,7 +97,7 @@ function Metric({ title, value, badge, language = "en", href }: { title: string;
   );
 
   return href ? (
-    <a href={href} className="rounded-md border border-line bg-white p-5 shadow-soft transition hover:border-teal hover:shadow-md">
+    <a href={appHref(href)} className="rounded-md border border-line bg-white p-5 shadow-soft transition hover:border-teal hover:shadow-md">
       {content}
     </a>
   ) : (
@@ -147,7 +155,7 @@ export function SubscriptionManagePanel({ subscription, plans }: { subscription?
     event.preventDefault();
     setStatus("loading");
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/subscription/change", {
+    const response = await appFetch("/api/subscription/change", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -341,7 +349,7 @@ export function IntakeForm({ questions }: { questions: IntakeQuestion[] }) {
       }
     });
 
-    const response = await fetch("/api/intake/submit", {
+    const response = await appFetch("/api/intake/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ answers })
@@ -477,7 +485,7 @@ export function SupportForm({ workItems = [] }: { workItems?: WorkItem[] }) {
     event.preventDefault();
     setStatus("loading");
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/support", {
+    const response = await appFetch("/api/support", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.fromEntries(formData.entries()))
@@ -532,14 +540,19 @@ export function SupportForm({ workItems = [] }: { workItems?: WorkItem[] }) {
 
 export function ProfileForm({ profile, projects = [] }: { profile: Profile; projects?: Project[] }) {
   const { language, t } = useLanguage();
+  const [displayProfile, setDisplayProfile] = useState(profile);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const activeProjects = projects.filter((project) => project.status !== "completed" && project.status !== "archived");
+
+  useEffect(() => {
+    setDisplayProfile(getStaticProfile() ?? profile);
+  }, [profile]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("loading");
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/profile", {
+    const response = await appFetch("/api/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.fromEntries(formData.entries()))
@@ -551,18 +564,18 @@ export function ProfileForm({ profile, projects = [] }: { profile: Profile; proj
     <div className="grid gap-5">
       <Card>
         <SectionHeader title={t("dashboard.profile")} />
-        <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
+        <form key={displayProfile.id} className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
           <Field label={t("auth.fullName")}>
-            <input name="full_name" defaultValue={profile.full_name} className={inputClass} required />
+            <input name="full_name" defaultValue={displayProfile.full_name} className={inputClass} required />
           </Field>
           <Field label={t("auth.phone")}>
-            <input name="phone" defaultValue={profile.phone} className={inputClass} required />
+            <input name="phone" defaultValue={displayProfile.phone} className={inputClass} required />
           </Field>
           <Field label={t("auth.businessName")}>
-            <input name="business_name" defaultValue={profile.business_name} className={inputClass} required />
+            <input name="business_name" defaultValue={displayProfile.business_name} className={inputClass} required />
           </Field>
           <Field label={t("auth.preferredLanguage")}>
-            <select name="preferred_language" defaultValue={profile.preferred_language || language} className={inputClass}>
+            <select name="preferred_language" defaultValue={displayProfile.preferred_language || language} className={inputClass}>
               <option value="en">English</option>
               <option value="es">Español</option>
             </select>
@@ -578,7 +591,7 @@ export function ProfileForm({ profile, projects = [] }: { profile: Profile; proj
         <SectionHeader title={t("dashboard.activeProjects")} description="Quick links to active project dashboards." />
         <div className="grid gap-3">
           {activeProjects.map((project) => (
-            <a key={project.id} href={`/dashboard/projects/${project.id}`} className="flex flex-col gap-2 rounded-md border border-line p-4 transition hover:border-teal sm:flex-row sm:items-center sm:justify-between">
+            <a key={project.id} href={appHref(`/dashboard/projects/${project.id}`)} className="flex flex-col gap-2 rounded-md border border-line p-4 transition hover:border-teal sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-bold text-ink">{project.name}</p>
                 <p className="text-sm text-slate">{project.service_type}</p>
